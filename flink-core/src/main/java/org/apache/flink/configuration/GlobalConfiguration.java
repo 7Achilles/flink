@@ -131,6 +131,7 @@ public final class GlobalConfiguration {
         }
 
         // get Flink yaml configuration file
+        // 读取flink yaml文件
         final File yamlConfigFile = new File(confDirFile, FLINK_CONF_FILENAME);
 
         if (!yamlConfigFile.exists()) {

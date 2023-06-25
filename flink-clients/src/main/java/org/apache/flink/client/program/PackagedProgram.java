@@ -219,6 +219,7 @@ public class PackagedProgram implements AutoCloseable {
     public void invokeInteractiveModeForExecution() throws ProgramInvocationException {
         FlinkSecurityManager.monitorUserSystemExitForCurrentThread();
         try {
+            // mainClass是用户指定的执行类
             callMainMethod(mainClass, args);
         } finally {
             FlinkSecurityManager.unmonitorUserSystemExitForCurrentThread();
@@ -329,6 +330,7 @@ public class PackagedProgram implements AutoCloseable {
         }
 
         try {
+            // 获取类中的main方法
             mainMethod = entryClass.getMethod("main", String[].class);
         } catch (NoSuchMethodException e) {
             throw new ProgramInvocationException(
@@ -352,6 +354,7 @@ public class PackagedProgram implements AutoCloseable {
         }
 
         try {
+            // 执行main方法，调用用户代码
             mainMethod.invoke(null, (Object) args);
         } catch (IllegalArgumentException e) {
             throw new ProgramInvocationException(

@@ -86,6 +86,7 @@ public class GenericCLI implements CustomCommandLine {
 
     @Override
     public boolean isActive(CommandLine commandLine) {
+        // 通过用户的输入项判断，比如-t
         return configuration.getOptional(DeploymentOptions.TARGET).isPresent()
                 || commandLine.hasOption(executorOption.getOpt())
                 || commandLine.hasOption(targetOption.getOpt());
