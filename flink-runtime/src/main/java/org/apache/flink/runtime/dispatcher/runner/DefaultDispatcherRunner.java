@@ -238,6 +238,7 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
         final DefaultDispatcherRunner dispatcherRunner =
                 new DefaultDispatcherRunner(
                         leaderElectionService, fatalErrorHandler, dispatcherLeaderProcessFactory);
+        // 启动dispatcher
         dispatcherRunner.start();
         return dispatcherRunner;
     }

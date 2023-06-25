@@ -62,6 +62,7 @@ class DefaultDispatcherGatewayServiceFactory
 
         final Dispatcher dispatcher;
         try {
+            // 创建dispatcher，dispatcher创建启动job master
             dispatcher =
                     dispatcherFactory.createDispatcher(
                             rpcService,
@@ -76,6 +77,8 @@ class DefaultDispatcherGatewayServiceFactory
             throw new FlinkRuntimeException("Could not create the Dispatcher rpc endpoint.", e);
         }
 
+        // 启动dispatcher
+        // akka通信，直接看onStart方法
         dispatcher.start();
 
         return DefaultDispatcherGatewayService.from(dispatcher);

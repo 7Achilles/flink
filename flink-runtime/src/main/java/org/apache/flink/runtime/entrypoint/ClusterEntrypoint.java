@@ -229,6 +229,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
             securityContext.runSecured(
                     (Callable<Void>)
                             () -> {
+                                // 核心逻辑
                                 runCluster(configuration, pluginManager);
 
                                 return null;
@@ -279,6 +280,8 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
     private void runCluster(Configuration configuration, PluginManager pluginManager)
             throws Exception {
         synchronized (lock) {
+
+            // 初始化服务，比如rpc
             initializeServices(configuration, pluginManager);
 
             // write host information into configuration
@@ -289,6 +292,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
                     dispatcherResourceManagerComponentFactory =
                             createDispatcherResourceManagerComponentFactory(configuration);
 
+            // 创建启动jobManager中的组件：dispatcher、job master、resource manager
             clusterComponent =
                     dispatcherResourceManagerComponentFactory.create(
                             configuration,
@@ -360,6 +364,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             rpcSystem = RpcSystem.load(configuration);
 
+            // 初始化rpc服务
             commonRpcService =
                     RpcUtils.createRemoteRpcService(
                             rpcSystem,
@@ -726,9 +731,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
     // --------------------------------------------------
 
     public static void runClusterEntrypoint(ClusterEntrypoint clusterEntrypoint) {
-
+        // 获取类名
         final String clusterEntrypointName = clusterEntrypoint.getClass().getSimpleName();
         try {
+            // 启动集群
             clusterEntrypoint.startCluster();
         } catch (ClusterEntrypointException e) {
             LOG.error(

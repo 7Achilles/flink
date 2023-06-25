@@ -282,6 +282,7 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
     private CompletableFuture<Boolean> startResourceManagerIfIsLeader(
             ResourceManager<?> resourceManager) {
         if (isLeader(resourceManager)) {
+            // 启动resource manager
             resourceManager.start();
             forwardTerminationFuture(resourceManager);
             return resourceManager.getStartedFuture().thenApply(ignore -> true);

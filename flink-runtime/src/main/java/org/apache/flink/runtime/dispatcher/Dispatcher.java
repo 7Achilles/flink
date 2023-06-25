@@ -324,6 +324,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
     @Override
     public void onStart() throws Exception {
         try {
+            // 启动dispatcher
             startDispatcherServices();
         } catch (Throwable t) {
             final DispatcherException exception =
@@ -334,6 +335,8 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
         }
 
         startCleanupRetries();
+
+        // 启动job master
         startRecoveredJobs();
 
         this.dispatcherBootstrap =
@@ -635,6 +638,7 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
 
     private JobManagerRunner createJobMasterRunner(JobGraph jobGraph) throws Exception {
         Preconditions.checkState(!jobManagerRunnerRegistry.isRegistered(jobGraph.getJobID()));
+        // 创建JobManagerRunner
         return jobManagerRunnerFactory.createJobManagerRunner(
                 jobGraph,
                 configuration,
@@ -658,6 +662,8 @@ public abstract class Dispatcher extends FencedRpcEndpoint<DispatcherId>
 
     private void runJob(JobManagerRunner jobManagerRunner, ExecutionType executionType)
             throws Exception {
+
+        // 启动job master
         jobManagerRunner.start();
         jobManagerRunnerRegistry.register(jobManagerRunner);
 

@@ -70,6 +70,7 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
     //  for a single Flink job.
     // ------------------------------------------------------------------------
 
+    // am执行的入口
     public static void main(String[] args) {
 
         LOG.warn(
@@ -100,12 +101,14 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
                         args,
                         new DynamicParametersConfigurationParserFactory(),
                         YarnJobClusterEntrypoint.class);
+        // 封装配置
         final Configuration configuration =
                 YarnEntrypointUtils.loadConfiguration(workingDirectory, dynamicParameters, env);
 
         YarnJobClusterEntrypoint yarnJobClusterEntrypoint =
                 new YarnJobClusterEntrypoint(configuration);
 
+        // 执行集群的入口
         ClusterEntrypoint.runClusterEntrypoint(yarnJobClusterEntrypoint);
     }
 }

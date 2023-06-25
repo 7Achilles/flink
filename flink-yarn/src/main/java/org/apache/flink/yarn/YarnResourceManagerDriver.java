@@ -180,6 +180,7 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
         isRunning = true;
         final YarnContainerEventHandler yarnContainerEventHandler = new YarnContainerEventHandler();
         try {
+            // 创建yarn的resourceManagerClient，并初始化启动
             resourceManagerClient =
                     yarnResourceManagerClientFactory.createResourceManagerClient(
                             yarnHeartbeatIntervalMillis, yarnContainerEventHandler);
@@ -199,6 +200,7 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
             throw new ResourceManagerException("Could not start resource manager client.", e);
         }
 
+        // 创建yarn的nodeManagerClient，并且初始化启动
         nodeManagerClient =
                 yarnNodeManagerClientFactory.createNodeManagerClient(yarnContainerEventHandler);
         nodeManagerClient.init(yarnConfig);
