@@ -231,6 +231,7 @@ public class CepOperator<IN, KEY, OUT>
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        // 处理时间流程
         if (isProcessingTime) {
             if (comparator == null) {
                 // there can be no out of order elements in processing time
@@ -245,7 +246,7 @@ public class CepOperator<IN, KEY, OUT>
             }
 
         } else {
-
+            // 事件事件流程
             long timestamp = element.getTimestamp();
             IN value = element.getValue();
 
