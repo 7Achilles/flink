@@ -246,7 +246,7 @@ public class CepOperator<IN, KEY, OUT>
             }
 
         } else {
-            // 事件事件流程
+            // 事件时间流程
             long timestamp = element.getTimestamp();
             IN value = element.getValue();
 
