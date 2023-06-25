@@ -538,7 +538,10 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             boolean detached)
             throws Exception {
 
+        // 获取用户
         final UserGroupInformation currentUser = UserGroupInformation.getCurrentUser();
+
+        // 如果Kerberos安全校验开启，则校验用户权限
         if (HadoopUtils.isKerberosSecurityEnabled(currentUser)) {
             boolean useTicketCache =
                     flinkConfiguration.getBoolean(SecurityOptions.KERBEROS_LOGIN_USETICKETCACHE);
@@ -564,16 +567,18 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             }
         }
 
+        // 前置检查，jar包路径、yarn最大核数等
         isReadyForDeployment(clusterSpecification);
 
         // ------------------ Check if the specified queue exists --------------------
-
+        // 检查指定的yarn队列是否存在
         checkYarnQueues(yarnClient);
 
         // ------------------ Check if the YARN ClusterClient has the requested resources
         // --------------
 
         // Create application via yarnClient
+        // 检查yarn是否有足够资源
         final YarnClientApplication yarnApplication = yarnClient.createApplication();
         final GetNewApplicationResponse appResponse = yarnApplication.getNewApplicationResponse();
 
@@ -622,6 +627,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         flinkConfiguration.setString(
                 ClusterEntrypoint.INTERNAL_CLUSTER_EXECUTION_MODE, executionMode.toString());
 
+        // 重点代码：启动am
         ApplicationReport report =
                 startAppMaster(
                         flinkConfiguration,
@@ -793,7 +799,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             throws Exception {
 
         // ------------------ Initialize the file systems -------------------------
-
+        // 初始化创建HDFS
         org.apache.flink.core.fs.FileSystem.initialize(
                 configuration, PluginUtils.createPluginManagerFromRootFolder(configuration));
 
@@ -821,6 +827,8 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
         Path stagingDirPath = getStagingDir(fs);
         FileSystem stagingDirFs = stagingDirPath.getFileSystem(yarnConfiguration);
+
+        // yarn文件上传器，包括对应的HDFS的路径
         final YarnApplicationFileUploader fileUploader =
                 YarnApplicationFileUploader.from(
                         stagingDirFs,
@@ -848,6 +856,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         // ------------------ Add Zookeeper namespace to local flinkConfiguraton ------
         setHAClusterIdIfNotSet(configuration, appId);
 
+        // 设置高可用配置
         if (HighAvailabilityMode.isHighAvailabilityModeActivated(configuration)) {
             // activate re-execution of failed applications
             appContext.setMaxAppAttempts(
@@ -862,6 +871,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
                     configuration.getInteger(YarnConfigOptions.APPLICATION_ATTEMPTS.key(), 1));
         }
 
+        // 存用户jar包路径
         final Set<Path> userJarFiles = new HashSet<>();
         if (jobGraph != null) {
             userJarFiles.addAll(
@@ -1163,9 +1173,12 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         }
 
         amContainer.setLocalResources(fileUploader.getRegisteredLocalResources());
+
+        // 上面的逻辑全部都是在上传文件，不用care
         fileUploader.close();
 
         // Setup CLASSPATH and environment variables for ApplicationMaster
+        // 创建am的环境信息，下面的逻辑基本都是在设置环境信息
         final Map<String, String> appMasterEnv =
                 generateApplicationMasterEnv(
                         fileUploader,
@@ -1191,6 +1204,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             appMasterEnv.put(YarnConfigKeys.ENV_KRB5_PATH, remoteKrb5Path.toString());
         }
 
+        // 将环境配置信息设置到am的容器内
         amContainer.setEnvironment(appMasterEnv);
 
         // Set up resource type requirements for ApplicationMaster
@@ -1226,6 +1240,8 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
                 new DeploymentFailureHook(yarnApplication, fileUploader.getApplicationDir());
         Runtime.getRuntime().addShutdownHook(deploymentFailureHook);
         LOG.info("Submitting application master " + appId);
+
+        // 提交应用，启动AM容器
         yarnClient.submitApplication(appContext);
 
         LOG.info("Waiting for the cluster to be allocated");

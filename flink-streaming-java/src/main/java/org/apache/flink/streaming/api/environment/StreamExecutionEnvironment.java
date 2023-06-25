@@ -2041,6 +2041,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      * @return The result of the job execution, containing elapsed time and accumulators.
      * @throws Exception which occurs during job execution.
      */
+    // env.execute()
     public JobExecutionResult execute() throws Exception {
         return execute((String) null);
     }
@@ -2058,6 +2059,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     public JobExecutionResult execute(String jobName) throws Exception {
         final List<Transformation<?>> originalTransformations = new ArrayList<>(transformations);
+        // 获取流图
         StreamGraph streamGraph = getStreamGraph();
         if (jobName != null) {
             streamGraph.setJobName(jobName);
@@ -2090,6 +2092,8 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     @Internal
     public JobExecutionResult execute(StreamGraph streamGraph) throws Exception {
+
+        // 执行
         final JobClient jobClient = executeAsync(streamGraph);
 
         try {
@@ -2202,6 +2206,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
         checkNotNull(streamGraph, "StreamGraph cannot be null.");
         final PipelineExecutor executor = getPipelineExecutor();
 
+        // 核心代码：execute
         CompletableFuture<JobClient> jobClientFuture =
                 executor.execute(streamGraph, configuration, userClassloader);
 

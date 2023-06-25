@@ -58,6 +58,7 @@ public class YarnClusterClientFactory
         final String configurationDirectory = configuration.get(DeploymentOptionsInternal.CONF_DIR);
         YarnLogConfigUtil.setLogConfigFileInConfig(configuration, configurationDirectory);
 
+
         return getClusterDescriptor(configuration);
     }
 
@@ -75,13 +76,16 @@ public class YarnClusterClientFactory
     }
 
     private YarnClusterDescriptor getClusterDescriptor(Configuration configuration) {
+        // 创建yarn的客户端
         final YarnClient yarnClient = YarnClient.createYarnClient();
         final YarnConfiguration yarnConfiguration =
                 Utils.getYarnAndHadoopConfiguration(configuration);
 
+        // 初始化yarn客户端并启动
         yarnClient.init(yarnConfiguration);
         yarnClient.start();
 
+        // 返回yarn的集群描述器
         return new YarnClusterDescriptor(
                 configuration,
                 yarnConfiguration,
