@@ -25,6 +25,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 
 /** State kept for a {@link NFA}. */
+// NFA的留存状态
 public class NFAState {
 
     /**

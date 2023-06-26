@@ -28,6 +28,7 @@ import java.util.Objects;
  *
  * @param <T> type of events that are handled by the {@link IterativeCondition}
  */
+// 表示从一个状态到另一个状态的转换
 public class StateTransition<T> implements Serializable {
     private static final long serialVersionUID = -4825345749997891838L;
 

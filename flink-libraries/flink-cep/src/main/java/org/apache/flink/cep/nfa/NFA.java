@@ -86,6 +86,7 @@ public class NFA<T> {
      * A set of all the valid NFA states, as returned by the {@link NFACompiler NFACompiler}. These
      * are directly derived from the user-specified pattern.
      */
+    // 所有的有效的NFA状态
     private final Map<String, State<T>> states;
 
     /**
@@ -196,10 +197,15 @@ public class NFA<T> {
      * @param conf The configuration containing the parameters attached to the contract.
      */
     public void open(RuntimeContext cepRuntimeContext, Configuration conf) throws Exception {
+        // 遍历NFA的所有状态
         for (State<T> state : getStates()) {
+            // 遍历当前状态的转换
             for (StateTransition<T> transition : state.getStateTransitions()) {
+                // 拿到转换条件
                 IterativeCondition condition = transition.getCondition();
+                // 将这个转换条件存到运行上下文中
                 FunctionUtils.setFunctionRuntimeContext(condition, cepRuntimeContext);
+                // 初始化方法
                 FunctionUtils.openFunction(condition, conf);
             }
         }
@@ -236,6 +242,7 @@ public class NFA<T> {
      *     is activated)
      * @throws Exception Thrown if the system cannot access the state.
      */
+    // 处理下一条事件
     public Collection<Map<String, List<T>>> process(
             final SharedBufferAccessor<T> sharedBufferAccessor,
             final NFAState nfaState,
@@ -244,7 +251,9 @@ public class NFA<T> {
             final AfterMatchSkipStrategy afterMatchSkipStrategy,
             final TimerService timerService)
             throws Exception {
+
         try (EventWrapper eventWrapper = new EventWrapper(event, timestamp, sharedBufferAccessor)) {
+            // 干活的地方
             return doProcess(
                     sharedBufferAccessor,
                     nfaState,
@@ -539,6 +548,7 @@ public class NFA<T> {
      * and released on close of this object. This allows to wrap whole processing of the event with
      * try-with-resources block.
      */
+    // 确保事件仅注册一次
     private class EventWrapper implements AutoCloseable {
 
         private final T event;

@@ -34,6 +34,7 @@ import java.util.Objects;
  *
  * @param <T> Type of the input events
  */
+// 存储NFA的状态
 public class State<T> implements Serializable {
     private static final long serialVersionUID = 6658700025989097781L;
 

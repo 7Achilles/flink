@@ -45,6 +45,7 @@ import static java.util.Objects.requireNonNull;
  * @param <OUT> The output type of the operator
  * @param <F> The type of the user function
  */
+// 用户自定义算子的基类
 @PublicEvolving
 public abstract class AbstractUdfStreamOperator<OUT, F extends Function>
         extends AbstractStreamOperator<OUT>

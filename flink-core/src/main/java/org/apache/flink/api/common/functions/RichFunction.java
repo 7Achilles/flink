@@ -62,6 +62,7 @@ public interface RichFunction extends Function {
      *     decide whether to retry the task execution.
      * @see org.apache.flink.configuration.Configuration
      */
+    // 初始化方法
     void open(Configuration parameters) throws Exception;
 
     /**

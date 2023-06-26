@@ -1081,6 +1081,7 @@ public class NFACompiler {
 
         @Override
         public NFA<T> createNFA() {
+            // new一个nfa返回
             return new NFA<>(states, windowTimes, windowTime, timeoutHandling);
         }
     }

@@ -78,6 +78,7 @@ import java.util.stream.Stream;
  * @param <KEY> Type of the key on which the input stream is keyed
  * @param <OUT> Type of the output elements
  */
+// cep算子
 @Internal
 public class CepOperator<IN, KEY, OUT>
         extends AbstractUdfStreamOperator<OUT, PatternProcessFunction<IN, OUT>>
@@ -87,47 +88,59 @@ public class CepOperator<IN, KEY, OUT>
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
+    // 是否为处理时间
     private final boolean isProcessingTime;
 
+    // 输入流的序列化器
     private final TypeSerializer<IN> inputSerializer;
 
     ///////////////			State			//////////////
-
+    // nfa的状态名
     private static final String NFA_STATE_NAME = "nfaStateName";
+    // 事件队列状态名
     private static final String EVENT_QUEUE_STATE_NAME = "eventQueuesStateName";
-
+    // nfa的工厂类
     private final NFACompiler.NFAFactory<IN> nfaFactory;
-
+    // 计算状态
     private transient ValueState<NFAState> computationStates;
+    // 输入事件的队列状态
     private transient MapState<Long, List<IN>> elementQueueState;
+    // 共享缓冲区
     private transient SharedBuffer<IN> partialMatches;
-
+    // 定时器服务
     private transient InternalTimerService<VoidNamespace> timerService;
-
+    // nfa定义
     private transient NFA<IN> nfa;
 
     /** Comparator for secondary sorting. Primary sorting is always done on time. */
+    // 事件比较器
     private final EventComparator<IN> comparator;
 
     /**
      * {@link OutputTag} to use for late arriving events. Elements with timestamp smaller than the
      * current watermark will be emitted to this.
      */
+    // 侧输出流标签
     private final OutputTag<IN> lateDataOutputTag;
 
     /** Strategy which element to skip after a match was found. */
+    // 匹配后跳过策略
     private final AfterMatchSkipStrategy afterMatchSkipStrategy;
 
     /** Context passed to user function. */
+    // 用户函数的上下文
     private transient ContextFunctionImpl context;
 
     /** Main output collector, that sets a proper timestamp to the StreamRecord. */
+    // 为流记录设置时间戳
     private transient TimestampedCollector<OUT> collector;
 
     /** Wrapped RuntimeContext that limits the underlying context features. */
+    // 运行时的上下文
     private transient CepRuntimeContext cepRuntimeContext;
 
     /** Thin context passed to NFA that gives access to time related characteristics. */
+    // NFA的上下文
     private transient TimerService cepTimerService;
 
     // ------------------------------------------------------------------------
@@ -160,6 +173,7 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
+    // 构造算子初始化
     @Override
     public void setup(
             StreamTask<?, ?> containingTask,
@@ -170,6 +184,7 @@ public class CepOperator<IN, KEY, OUT>
         FunctionUtils.setFunctionRuntimeContext(getUserFunction(), this.cepRuntimeContext);
     }
 
+    // 初始化状态
     @Override
     public void initializeState(StateInitializationContext context) throws Exception {
         super.initializeState(context);
@@ -203,13 +218,18 @@ public class CepOperator<IN, KEY, OUT>
     @Override
     public void open() throws Exception {
         super.open();
+
+        // 注册定时器
         timerService =
                 getInternalTimerService(
                         "watermark-callbacks", VoidNamespaceSerializer.INSTANCE, this);
-
+        // 创建nfa
         nfa = nfaFactory.createNFA();
+
+        // 初始化nfa的状态
         nfa.open(cepRuntimeContext, new Configuration());
 
+        // 初始化
         context = new ContextFunctionImpl();
         collector = new TimestampedCollector<>(output);
         cepTimerService = new TimerServiceImpl();
@@ -218,6 +238,7 @@ public class CepOperator<IN, KEY, OUT>
         this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
     }
 
+    // 关闭算子前的操作
     @Override
     public void close() throws Exception {
         super.close();
@@ -229,19 +250,28 @@ public class CepOperator<IN, KEY, OUT>
         }
     }
 
+    // 处理数据
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
         // 处理时间流程
         if (isProcessingTime) {
+            // 比较器为空
             if (comparator == null) {
                 // there can be no out of order elements in processing time
+                // 获取当前nfa的状态
                 NFAState nfaState = getNFAState();
+                // 拿到当前的处理时间
                 long timestamp = getProcessingTimeService().getCurrentProcessingTime();
+                // 时间设置
                 advanceTime(nfaState, timestamp);
+                // 处理事件
                 processEvent(nfaState, element.getValue(), timestamp);
+                //
                 updateNFA(nfaState);
             } else {
+                // 获取当前的处理时间
                 long currentTime = timerService.currentProcessingTime();
+                //
                 bufferEvent(element.getValue(), currentTime);
             }
 
@@ -400,7 +430,9 @@ public class CepOperator<IN, KEY, OUT>
      * @param timestamp The timestamp of the event
      */
     private void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
+        // 拿到共享缓冲区访问器
         try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
+            // 处理数据
             Collection<Map<String, List<IN>>> patterns =
                     nfa.process(
                             sharedBufferAccessor,
@@ -409,9 +441,11 @@ public class CepOperator<IN, KEY, OUT>
                             timestamp,
                             afterMatchSkipStrategy,
                             cepTimerService);
+
             if (nfa.getWindowTime() > 0 && nfaState.isNewStartPartialMatch()) {
                 registerTimer(timestamp + nfa.getWindowTime());
             }
+
             processMatchedSequences(patterns, timestamp);
         }
     }
@@ -421,6 +455,7 @@ public class CepOperator<IN, KEY, OUT>
      * with timestamp <b>lower</b> than the given timestamp should be passed to the nfa, This can
      * lead to pruning and timeouts.
      */
+    // 将nfa的时间提前至给定的时间
     private void advanceTime(NFAState nfaState, long timestamp) throws Exception {
         try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
             Tuple2<

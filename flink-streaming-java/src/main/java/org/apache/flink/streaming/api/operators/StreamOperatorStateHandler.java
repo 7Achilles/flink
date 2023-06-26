@@ -390,6 +390,7 @@ public class StreamOperatorStateHandler {
 
     /** Custom state handling hooks to be invoked by {@link StreamOperatorStateHandler}. */
     public interface CheckpointedStreamOperator {
+        // 检查点初始化
         void initializeState(StateInitializationContext context) throws Exception;
 
         void snapshotState(StateSnapshotContext context) throws Exception;

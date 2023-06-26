@@ -42,6 +42,7 @@ import java.io.Serializable;
  *
  * @param <OUT> The output type of the operator
  */
+// 流算子的基类接口
 @PublicEvolving
 public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Serializable {
 
@@ -59,6 +60,7 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      *     head operator).
      * @throws java.lang.Exception An exception in this method causes the operator to fail.
      */
+    // 在处理任何元素之前调用，应该包含算子的初始化逻辑
     void open() throws Exception;
 
     /**
@@ -80,6 +82,7 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      *
      * @throws java.lang.Exception An exception in this method causes the operator to fail.
      */
+    // 在数据处理结束时执行
     void finish() throws Exception;
 
     /**
@@ -92,6 +95,7 @@ public interface StreamOperator<OUT> extends CheckpointListener, KeyContext, Ser
      * <p><b>NOTE:</b>It can not emit any records! If you need to emit records at the end of
      * processing, do so in the {@link #finish()} method.
      */
+    // 在算子生命周期最后调用
     void close() throws Exception;
 
     // ------------------------------------------------------------------------

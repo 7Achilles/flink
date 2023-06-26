@@ -69,6 +69,7 @@ import java.util.TimerTask;
  * @see <a href="https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf">
  *     https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf</a>
  */
+// 共享缓冲区
 public class SharedBuffer<V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedBuffer.class);
@@ -260,6 +261,7 @@ public class SharedBuffer<V> {
      *
      * @return an accessor to deal with this sharedBuffer.
      */
+    // 构造一个访问器来处理这个共享缓冲区
     public SharedBufferAccessor<V> getAccessor() {
         return new SharedBufferAccessor<>(this);
     }
