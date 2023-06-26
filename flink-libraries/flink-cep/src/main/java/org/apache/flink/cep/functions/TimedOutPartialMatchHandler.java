@@ -38,6 +38,7 @@ import java.util.Map;
  * @param <IN> type of input elements
  */
 @PublicEvolving
+// 超时匹配处理
 public interface TimedOutPartialMatchHandler<IN> {
 
     /**

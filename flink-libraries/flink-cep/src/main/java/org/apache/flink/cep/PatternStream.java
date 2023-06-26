@@ -54,6 +54,7 @@ public class PatternStream<T> {
     private final PatternStreamBuilder<T> builder;
 
     private PatternStream(final PatternStreamBuilder<T> builder) {
+        // 构造器赋值
         this.builder = checkNotNull(builder);
     }
 
@@ -83,6 +84,7 @@ public class PatternStream<T> {
     }
 
     /** Sets the time characteristic to event time. */
+    // 设置事件时间
     public PatternStream<T> inEventTime() {
         return new PatternStream<>(builder.inEventTime());
     }
@@ -98,8 +100,11 @@ public class PatternStream<T> {
      * @return {@link DataStream} which contains the resulting elements from the pattern process
      *     function.
      */
+    // 添加匹配整个模式序列的处理方法，以及使用builder开始构建实际的nfa
     public <R> SingleOutputStreamOperator<R> process(
             final PatternProcessFunction<T, R> patternProcessFunction) {
+
+        // 拿到返回的类型
         final TypeInformation<R> returnType =
                 TypeExtractor.getUnaryOperatorReturnType(
                         patternProcessFunction,
@@ -111,6 +116,7 @@ public class PatternStream<T> {
                         null,
                         false);
 
+        // 干活的地方
         return process(patternProcessFunction, returnType);
     }
 
@@ -129,7 +135,7 @@ public class PatternStream<T> {
     public <R> SingleOutputStreamOperator<R> process(
             final PatternProcessFunction<T, R> patternProcessFunction,
             final TypeInformation<R> outTypeInfo) {
-
+        // 构造nfa工厂和cep算子
         return builder.build(outTypeInfo, builder.clean(patternProcessFunction));
     }
 

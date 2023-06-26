@@ -35,6 +35,7 @@ public class CEP {
      * @param <T> Type of the input events
      * @return Resulting pattern stream
      */
+    // 创造一个PatternStream，此时返回的PatternStream其实是builder的一层包装，实际还是需要看builder
     public static <T> PatternStream<T> pattern(DataStream<T> input, Pattern<T, ?> pattern) {
         return new PatternStream<>(input, pattern);
     }

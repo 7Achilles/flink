@@ -73,14 +73,18 @@ public class NFACompiler {
             final Pattern<T, ?> pattern, boolean timeoutHandling) {
         if (pattern == null) {
             // return a factory for empty NFAs
+            // pattern为空则返回一个空的nfa
             return new NFAFactoryImpl<>(
                     0,
                     Collections.<String, Long>emptyMap(),
                     Collections.<State<T>>emptyList(),
                     timeoutHandling);
         } else {
+            // new一个NFAFactory编译器
             final NFAFactoryCompiler<T> nfaFactoryCompiler = new NFAFactoryCompiler<>(pattern);
+            // 做一些NFAFactory编译器的初始化操作
             nfaFactoryCompiler.compileFactory();
+            // new一个NFAFactory
             return new NFAFactoryImpl<>(
                     nfaFactoryCompiler.getWindowTime(),
                     nfaFactoryCompiler.getWindowTimes(),
@@ -155,6 +159,7 @@ public class NFACompiler {
         private Map<String, State<T>> originalStateMap = new HashMap<>();
 
         NFAFactoryCompiler(final Pattern<T, ?> pattern) {
+            // 把pattern设置进来
             this.currentPattern = pattern;
             afterMatchSkipStrategy = pattern.getAfterMatchSkipStrategy();
             windowTime = Optional.empty();
@@ -174,6 +179,7 @@ public class NFACompiler {
 
             // we're traversing the pattern from the end to the beginning --> the first state is the
             // final state
+            // 设置状态
             State<T> sinkState = createEndingState();
             // add all the normal states
             sinkState = createMiddleStates(sinkState);

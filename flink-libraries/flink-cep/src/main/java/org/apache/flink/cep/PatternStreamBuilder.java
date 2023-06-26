@@ -45,22 +45,27 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 final class PatternStreamBuilder<IN> {
 
+    // 输入流
     private final DataStream<IN> inputStream;
 
+    // 模式
     private final Pattern<IN, ?> pattern;
 
+    // 时间比较规则
     private final EventComparator<IN> comparator;
 
     /**
      * Side output {@code OutputTag} for late data. If no tag is set late data will be simply
      * dropped.
      */
+    // 迟到数据的侧输出流的标签
     private final OutputTag<IN> lateDataOutputTag;
 
     /**
      * The time behaviour to specify processing time or event time. Default time behaviour is {@link
      * TimeBehaviour#EventTime}.
      */
+    // 时间行为
     private final TimeBehaviour timeBehaviour;
 
     /**
@@ -96,6 +101,7 @@ final class PatternStreamBuilder<IN> {
      * @return The cleaned Function
      */
     <F> F clean(F f) {
+        // 清理下执行环境内的function，并校验是否可序列化
         return inputStream.getExecutionEnvironment().clean(f);
     }
 
@@ -137,14 +143,18 @@ final class PatternStreamBuilder<IN> {
         checkNotNull(outTypeInfo);
         checkNotNull(processFunction);
 
+        // 拿到序列化器
         final TypeSerializer<IN> inputSerializer =
                 inputStream.getType().createSerializer(inputStream.getExecutionConfig());
         final boolean isProcessingTime = timeBehaviour == TimeBehaviour.ProcessingTime;
 
         final boolean timeoutHandling = processFunction instanceof TimedOutPartialMatchHandler;
+
+        // 构造nfa的工厂
         final NFACompiler.NFAFactory<IN> nfaFactory =
                 NFACompiler.compileFactory(pattern, timeoutHandling);
 
+        // 构造一个CEP的算子，需要输入序列化器、是否处理时间、nfa工厂、事件比较规则、跳过策略、处理函数、迟到数据的侧输出流标签
         final CepOperator<IN, K, OUT> operator =
                 new CepOperator<>(
                         inputSerializer,
@@ -156,9 +166,10 @@ final class PatternStreamBuilder<IN> {
                         lateDataOutputTag);
 
         final SingleOutputStreamOperator<OUT> patternStream;
+
+        // 分组并且将输入流转换为cep算子流
         if (inputStream instanceof KeyedStream) {
             KeyedStream<IN, K> keyedStream = (KeyedStream<IN, K>) inputStream;
-
             patternStream = keyedStream.transform("CepOperator", outTypeInfo, operator);
         } else {
             KeySelector<IN, Byte> keySelector = new NullByteKeySelector<>();
@@ -170,6 +181,7 @@ final class PatternStreamBuilder<IN> {
                             .forceNonParallel();
         }
 
+        // 返回cep算子流
         return patternStream;
     }
 
@@ -178,6 +190,7 @@ final class PatternStreamBuilder<IN> {
 
     static <IN> PatternStreamBuilder<IN> forStreamAndPattern(
             final DataStream<IN> inputStream, final Pattern<IN, ?> pattern) {
+        // new一个PatternStream的构造器，里面需要输入流、模式、时间行为
         return new PatternStreamBuilder<>(
                 inputStream, pattern, TimeBehaviour.EventTime, null, null);
     }
