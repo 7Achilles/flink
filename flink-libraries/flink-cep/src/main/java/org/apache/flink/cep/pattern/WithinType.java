@@ -19,9 +19,12 @@
 package org.apache.flink.cep.pattern;
 
 /** Type enum of time interval corresponds to the maximum time gap between events. */
+// 匹配事件的时间间隔的类型
 public enum WithinType {
     // Interval corresponds to the maximum time gap between the previous and current event.
+    // 前一个事件和当前事件之间的最大时间间隔
     PREVIOUS_AND_CURRENT,
     // Interval corresponds to the maximum time gap between the first and last event.
+    // 第一个事件和最后一个事件之间的最大时间间隔
     FIRST_AND_LAST;
 }

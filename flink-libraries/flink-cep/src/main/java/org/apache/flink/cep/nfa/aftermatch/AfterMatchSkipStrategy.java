@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /** Indicate the skip strategy after a match process. */
+// 匹配后跳过策略
 public abstract class AfterMatchSkipStrategy implements Serializable {
 
     private static final long serialVersionUID = -4048930333619068531L;
@@ -41,6 +42,7 @@ public abstract class AfterMatchSkipStrategy implements Serializable {
      * @param patternName the pattern name to skip to
      * @return the created AfterMatchSkipStrategy
      */
+    // 丢弃起始在这个匹配的开始和第一个出现的名称为PatternName事件之间的所有部分匹配
     public static SkipToFirstStrategy skipToFirst(String patternName) {
         return new SkipToFirstStrategy(patternName, false);
     }
@@ -52,6 +54,7 @@ public abstract class AfterMatchSkipStrategy implements Serializable {
      * @param patternName the pattern name to skip to
      * @return the created AfterMatchSkipStrategy
      */
+    // 丢弃起始在这个匹配的开始和最后一个出现的名称为PatternName事件之间的所有部分匹配
     public static SkipToLastStrategy skipToLast(String patternName) {
         return new SkipToLastStrategy(patternName, false);
     }
@@ -61,6 +64,7 @@ public abstract class AfterMatchSkipStrategy implements Serializable {
      *
      * @return the created AfterMatchSkipStrategy
      */
+    // 丢弃起始在这个匹配的开始和结束之间的所有部分匹配
     public static SkipPastLastStrategy skipPastLastEvent() {
         return SkipPastLastStrategy.INSTANCE;
     }
@@ -70,6 +74,7 @@ public abstract class AfterMatchSkipStrategy implements Serializable {
      *
      * @return the created AfterMatchSkipStrategy
      */
+    // 丢弃以相同事件开始的所有部分匹配
     public static AfterMatchSkipStrategy skipToNext() {
         return SkipToNextStrategy.INSTANCE;
     }
@@ -79,6 +84,7 @@ public abstract class AfterMatchSkipStrategy implements Serializable {
      *
      * @return the created AfterMatchSkipStrategy
      */
+    // 每个成功的匹配都会被输出
     public static NoSkipStrategy noSkip() {
         return NoSkipStrategy.INSTANCE;
     }

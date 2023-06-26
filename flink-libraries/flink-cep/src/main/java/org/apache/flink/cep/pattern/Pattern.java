@@ -52,31 +52,39 @@ import java.util.Map;
  * @param <T> Base type of the elements appearing in the pattern
  * @param <F> Subtype of T to which the current pattern operator is constrained
  */
+// 模式定义
 public class Pattern<T, F extends T> {
 
     /** Name of the pattern. */
     private final String name;
 
     /** Previous pattern. */
+    // 之前的Pattern
     private final Pattern<T, ? extends T> previous;
 
     /** The condition an event has to satisfy to be considered a matched. */
+    // 事件的匹配条件
     private IterativeCondition<F> condition;
 
     /** Window length in which the pattern match has to occur. */
+    // key:间隔类型 value：窗口时间
     private final Map<WithinType, Time> windowTimes = new HashMap<>();
 
     /**
      * A quantifier for the pattern. By default set to {@link Quantifier#one(ConsumingStrategy)}.
      */
+    // 量词
     private Quantifier quantifier = Quantifier.one(ConsumingStrategy.STRICT);
 
     /** The condition an event has to satisfy to stop collecting events into looping state. */
+    // 停止收集事件到循环的条件
     private IterativeCondition<F> untilCondition;
 
     /** Applicable to a {@code times} pattern, and holds the number of times it has to appear. */
+    // 保存出现的次数
     private Times times;
 
+    // 匹配后跳过策略
     private final AfterMatchSkipStrategy afterMatchSkipStrategy;
 
     protected Pattern(
@@ -134,6 +142,7 @@ public class Pattern<T, F extends T> {
      * @param <X> Base type of the event pattern
      * @return The first pattern of a pattern sequence
      */
+    // 开启一个pattern，返回一个新的pattern
     public static <X> Pattern<X, X> begin(final String name) {
         return new Pattern<>(name, null, ConsumingStrategy.STRICT, AfterMatchSkipStrategy.noSkip());
     }
@@ -161,13 +170,19 @@ public class Pattern<T, F extends T> {
      * @param condition The condition as an {@link IterativeCondition}.
      * @return The pattern with the new condition is set.
      */
+    // 为当前的pattern增加匹配条件，类似与and
     public Pattern<T, F> where(IterativeCondition<F> condition) {
+
+        // 校验条件非空
         Preconditions.checkNotNull(condition, "The condition cannot be null.");
 
+        // 清理闭包资源
         ClosureCleaner.clean(condition, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
         if (this.condition == null) {
+            // 当前pattern的条件为空，直接赋值
             this.condition = condition;
         } else {
+            // 组成条件列表，实现类为RichAndCondition，条件列表为nestedConditions（该列表在RichAndCondition的父类中）
             this.condition = new RichAndCondition<>(this.condition, condition);
         }
         return this;
@@ -181,6 +196,7 @@ public class Pattern<T, F extends T> {
      * @param condition The condition as an {@link IterativeCondition}.
      * @return The pattern with the new condition is set.
      */
+    // 为pattern增加匹配条件，类似or
     public Pattern<T, F> or(IterativeCondition<F> condition) {
         Preconditions.checkNotNull(condition, "The condition cannot be null.");
 
@@ -189,6 +205,7 @@ public class Pattern<T, F extends T> {
         if (this.condition == null) {
             this.condition = condition;
         } else {
+            // 增加到条件列表，和where逻辑一致
             this.condition = new RichOrCondition<>(this.condition, condition);
         }
         return this;
@@ -202,6 +219,7 @@ public class Pattern<T, F extends T> {
      * @param <S> Type of the subtype
      * @return The same pattern with the new subtype constraint
      */
+    // 为当前模式定义一个子类型条件。一个事件只有是这个子类型的时候才能匹配到模式
     public <S extends F> Pattern<T, S> subtype(final Class<S> subtypeClass) {
         Preconditions.checkNotNull(subtypeClass, "The class cannot be null.");
 
@@ -225,6 +243,7 @@ public class Pattern<T, F extends T> {
      *     looping state
      * @return The same pattern with applied untilCondition
      */
+    // 循环模式指定一个停止条件,只适用于和oneOrMore()同时使用
     public Pattern<T, F> until(IterativeCondition<F> untilCondition) {
         Preconditions.checkNotNull(untilCondition, "The condition cannot be null");
 
@@ -251,7 +270,9 @@ public class Pattern<T, F extends T> {
      * @param windowTime Time of the matching window
      * @return The same pattern operator with the new window length
      */
+    // 指定一个pattern的间隔信息
     public Pattern<T, F> within(Time windowTime) {
+        // put到windowTimes的map中
         return within(windowTime, WithinType.FIRST_AND_LAST);
     }
 
@@ -280,7 +301,9 @@ public class Pattern<T, F extends T> {
      * @param name Name of the new pattern
      * @return A new pattern which is appended to this one
      */
+    // 严格连续：期望所有匹配的事件严格的一个接一个出现，中间没有任何不匹配的事件
     public Pattern<T, T> next(final String name) {
+        // 重新定义一个Pattern，并将之前的Pattern保存在previous中
         return new Pattern<>(name, this, ConsumingStrategy.STRICT, afterMatchSkipStrategy);
     }
 
