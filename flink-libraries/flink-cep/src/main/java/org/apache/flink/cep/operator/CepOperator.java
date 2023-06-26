@@ -266,7 +266,7 @@ public class CepOperator<IN, KEY, OUT>
                 advanceTime(nfaState, timestamp);
                 // 处理事件
                 processEvent(nfaState, element.getValue(), timestamp);
-                //
+                // 变更nfa的状态
                 updateNFA(nfaState);
             } else {
                 // 获取当前的处理时间

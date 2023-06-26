@@ -949,7 +949,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
         JobShuffleContext context = new JobShuffleContextImpl(jobGraph.getJobID(), this);
         shuffleMaster.registerJob(context);
-
+        // 启动job master
         startJobMasterServices();
 
         log.info(
@@ -963,11 +963,15 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
 
     private void startJobMasterServices() throws Exception {
         try {
+
+            // 创建与taskManager之间的心跳服务
             this.taskManagerHeartbeatManager = createTaskManagerHeartbeatManager(heartbeatServices);
+            // 创建与resourceManager之间的心跳服务
             this.resourceManagerHeartbeatManager =
                     createResourceManagerHeartbeatManager(heartbeatServices);
 
             // start the slot pool make sure the slot pool now accepts messages for this leader
+            // 启动slotPool服务
             slotPoolService.start(getFencingToken(), getAddress(), getMainThreadExecutor());
 
             // job is ready to go, try to establish connection with resource manager
@@ -1185,6 +1189,8 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId>
                             resourceManagerGateway, resourceManagerResourceId);
 
             blocklistHandler.registerBlocklistListener(resourceManagerGateway);
+
+            // slot pool连接请求资源
             slotPoolService.connectToResourceManager(resourceManagerGateway);
             partitionTracker.connectToResourceManager(resourceManagerGateway);
 
