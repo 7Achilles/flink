@@ -18,6 +18,7 @@
 
 package org.apache.flink.cep;
 
+import org.apache.flink.cep.functions.DynamicPatternFunction;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
@@ -33,6 +34,7 @@ public class CEP {
      * @param input DataStream containing the input events
      * @param pattern Pattern specification which shall be detected
      * @param <T> Type of the input events
+     *
      * @return Resulting pattern stream
      */
     public static <T> PatternStream<T> pattern(DataStream<T> input, Pattern<T, ?> pattern) {
@@ -46,6 +48,7 @@ public class CEP {
      * @param pattern Pattern specification which shall be detected
      * @param comparator Comparator to sort events with equal timestamps
      * @param <T> Type of the input events
+     *
      * @return Resulting pattern stream
      */
     public static <T> PatternStream<T> pattern(
@@ -53,4 +56,21 @@ public class CEP {
         final PatternStream<T> stream = new PatternStream<>(input, pattern);
         return stream.withComparator(comparator);
     }
+
+    /**
+     * @param input:
+     * @param dynamicPatternFunction:
+     *
+     * @return PatternStream<T>
+     *
+     * @author 7Achilles
+     * @description do dynamic pattern
+     * @date 2023-06-25 17:07
+     */
+    public static <T> PatternStream<T> dynamicPattern(
+            DataStream<T> input,
+            DynamicPatternFunction<T> dynamicPatternFunction) {
+        return new PatternStream<>(input, dynamicPatternFunction);
+    }
+
 }

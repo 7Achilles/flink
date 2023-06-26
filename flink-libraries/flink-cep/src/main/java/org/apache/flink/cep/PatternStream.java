@@ -22,6 +22,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.EitherTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
+import org.apache.flink.cep.functions.DynamicPatternFunction;
 import org.apache.flink.cep.functions.PatternProcessFunction;
 import org.apache.flink.cep.functions.TimedOutPartialMatchHandler;
 import org.apache.flink.cep.pattern.Pattern;
@@ -61,6 +62,18 @@ public class PatternStream<T> {
         this(PatternStreamBuilder.forStreamAndPattern(inputStream, pattern));
     }
 
+    /**
+     * @param inputStream:
+     * @param function:
+     *
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:14
+     */
+    PatternStream(final DataStream<T> inputStream, final DynamicPatternFunction<T> function) {
+        this(PatternStreamBuilder.forStreamAndPattern(inputStream, function));
+    }
+
     PatternStream<T> withComparator(final EventComparator<T> comparator) {
         return new PatternStream<>(builder.withComparator(comparator));
     }
@@ -93,10 +106,11 @@ public class PatternStream<T> {
      * matches as well one can use {@link TimedOutPartialMatchHandler} as additional interface.
      *
      * @param patternProcessFunction The pattern process function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern process
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> process(
             final PatternProcessFunction<T, R> patternProcessFunction) {
@@ -120,11 +134,12 @@ public class PatternStream<T> {
      * matches as well one can use {@link TimedOutPartialMatchHandler} as additional interface.
      *
      * @param patternProcessFunction The pattern process function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <R> Type of the resulting elements
      * @param outTypeInfo Explicit specification of output type.
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern process
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> process(
             final PatternProcessFunction<T, R> patternProcessFunction,
@@ -139,10 +154,11 @@ public class PatternStream<T> {
      * exactly one resulting element.
      *
      * @param patternSelectFunction The pattern select function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern select
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> select(
             final PatternSelectFunction<T, R> patternSelectFunction) {
@@ -169,11 +185,12 @@ public class PatternStream<T> {
      * exactly one resulting element.
      *
      * @param patternSelectFunction The pattern select function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <R> Type of the resulting elements
      * @param outTypeInfo Explicit specification of output type.
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern select
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> select(
             final PatternSelectFunction<T, R> patternSelectFunction,
@@ -200,15 +217,16 @@ public class PatternStream<T> {
      * OutputTag}.
      *
      * @param timedOutPartialMatchesTag {@link OutputTag} that identifies side output with timed out
-     *     patterns
+     *         patterns
      * @param patternTimeoutFunction The pattern timeout function which is called for each partial
-     *     pattern sequence which has timed out.
+     *         pattern sequence which has timed out.
      * @param patternSelectFunction The pattern select function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <L> Type of the resulting timeout elements
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements with the resulting timeout
-     *     elements in a side output.
+     *         elements in a side output.
      */
     public <L, R> SingleOutputStreamOperator<R> select(
             final OutputTag<L> timedOutPartialMatchesTag,
@@ -248,16 +266,17 @@ public class PatternStream<T> {
      * OutputTag}.
      *
      * @param timedOutPartialMatchesTag {@link OutputTag} that identifies side output with timed out
-     *     patterns
+     *         patterns
      * @param patternTimeoutFunction The pattern timeout function which is called for each partial
-     *     pattern sequence which has timed out.
+     *         pattern sequence which has timed out.
      * @param outTypeInfo Explicit specification of output type.
      * @param patternSelectFunction The pattern select function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <L> Type of the resulting timeout elements
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements with the resulting timeout
-     *     elements in a side output.
+     *         elements in a side output.
      */
     public <L, R> SingleOutputStreamOperator<R> select(
             final OutputTag<L> timedOutPartialMatchesTag,
@@ -284,15 +303,17 @@ public class PatternStream<T> {
      * timeout function can produce exactly one resulting element.
      *
      * @param patternTimeoutFunction The pattern timeout function which is called for each partial
-     *     pattern sequence which has timed out.
+     *         pattern sequence which has timed out.
      * @param patternSelectFunction The pattern select function which is called for each detected
-     *     pattern sequence.
+     *         pattern sequence.
      * @param <L> Type of the resulting timeout elements
      * @param <R> Type of the resulting elements
-     * @deprecated Use {@link PatternStream#select(OutputTag, PatternTimeoutFunction,
-     *     PatternSelectFunction)} that returns timed out events as a side-output
+     *
      * @return {@link DataStream} which contains the resulting elements or the resulting timeout
-     *     elements wrapped in an {@link Either} type.
+     *         elements wrapped in an {@link Either} type.
+     *
+     * @deprecated Use {@link PatternStream#select(OutputTag, PatternTimeoutFunction,
+     *         PatternSelectFunction)} that returns timed out events as a side-output
      */
     @Deprecated
     public <L, R> SingleOutputStreamOperator<Either<L, R>> select(
@@ -344,10 +365,11 @@ public class PatternStream<T> {
      * can produce an arbitrary number of resulting elements.
      *
      * @param patternFlatSelectFunction The pattern flat select function which is called for each
-     *     detected pattern sequence.
+     *         detected pattern sequence.
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern flat select
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> flatSelect(
             final PatternFlatSelectFunction<T, R> patternFlatSelectFunction) {
@@ -360,7 +382,7 @@ public class PatternStream<T> {
                         PatternFlatSelectFunction.class,
                         0,
                         1,
-                        new int[] {1, 0},
+                        new int[]{1, 0},
                         builder.getInputType(),
                         null,
                         false);
@@ -374,11 +396,12 @@ public class PatternStream<T> {
      * can produce an arbitrary number of resulting elements.
      *
      * @param patternFlatSelectFunction The pattern flat select function which is called for each
-     *     detected pattern sequence.
+     *         detected pattern sequence.
      * @param <R> Type of the resulting elements
      * @param outTypeInfo Explicit specification of output type.
+     *
      * @return {@link DataStream} which contains the resulting elements from the pattern flat select
-     *     function.
+     *         function.
      */
     public <R> SingleOutputStreamOperator<R> flatSelect(
             final PatternFlatSelectFunction<T, R> patternFlatSelectFunction,
@@ -405,15 +428,16 @@ public class PatternStream<T> {
      * OutputTag}.
      *
      * @param timedOutPartialMatchesTag {@link OutputTag} that identifies side output with timed out
-     *     patterns
+     *         patterns
      * @param patternFlatTimeoutFunction The pattern timeout function which is called for each
-     *     partial pattern sequence which has timed out.
+     *         partial pattern sequence which has timed out.
      * @param patternFlatSelectFunction The pattern select function which is called for each
-     *     detected pattern sequence.
+     *         detected pattern sequence.
      * @param <L> Type of the resulting timeout elements
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements with the resulting timeout
-     *     elements in a side output.
+     *         elements in a side output.
      */
     public <L, R> SingleOutputStreamOperator<R> flatSelect(
             final OutputTag<L> timedOutPartialMatchesTag,
@@ -426,7 +450,7 @@ public class PatternStream<T> {
                         PatternFlatSelectFunction.class,
                         0,
                         1,
-                        new int[] {1, 0},
+                        new int[]{1, 0},
                         builder.getInputType(),
                         null,
                         false);
@@ -453,16 +477,17 @@ public class PatternStream<T> {
      * OutputTag}.
      *
      * @param timedOutPartialMatchesTag {@link OutputTag} that identifies side output with timed out
-     *     patterns
+     *         patterns
      * @param patternFlatTimeoutFunction The pattern timeout function which is called for each
-     *     partial pattern sequence which has timed out.
+     *         partial pattern sequence which has timed out.
      * @param patternFlatSelectFunction The pattern select function which is called for each
-     *     detected pattern sequence.
+     *         detected pattern sequence.
      * @param outTypeInfo Explicit specification of output type.
      * @param <L> Type of the resulting timeout elements
      * @param <R> Type of the resulting elements
+     *
      * @return {@link DataStream} which contains the resulting elements with the resulting timeout
-     *     elements in a side output.
+     *         elements in a side output.
      */
     public <L, R> SingleOutputStreamOperator<R> flatSelect(
             final OutputTag<L> timedOutPartialMatchesTag,
@@ -490,16 +515,18 @@ public class PatternStream<T> {
      * pattern timeout function can produce an arbitrary number of resulting elements.
      *
      * @param patternFlatTimeoutFunction The pattern flat timeout function which is called for each
-     *     partial pattern sequence which has timed out.
+     *         partial pattern sequence which has timed out.
      * @param patternFlatSelectFunction The pattern flat select function which is called for each
-     *     detected pattern sequence.
+     *         detected pattern sequence.
      * @param <L> Type of the resulting timeout events
      * @param <R> Type of the resulting events
-     * @deprecated Use {@link PatternStream#flatSelect(OutputTag, PatternFlatTimeoutFunction,
-     *     PatternFlatSelectFunction)} that returns timed out events as a side-output
+     *
      * @return {@link DataStream} which contains the resulting events from the pattern flat select
-     *     function or the resulting timeout events from the pattern flat timeout function wrapped
-     *     in an {@link Either} type.
+     *         function or the resulting timeout events from the pattern flat timeout function wrapped
+     *         in an {@link Either} type.
+     *
+     * @deprecated Use {@link PatternStream#flatSelect(OutputTag, PatternFlatTimeoutFunction,
+     *         PatternFlatSelectFunction)} that returns timed out events as a side-output
      */
     @Deprecated
     public <L, R> SingleOutputStreamOperator<Either<L, R>> flatSelect(
@@ -512,7 +539,7 @@ public class PatternStream<T> {
                         PatternFlatTimeoutFunction.class,
                         0,
                         1,
-                        new int[] {2, 0},
+                        new int[]{2, 0},
                         builder.getInputType(),
                         null,
                         false);
@@ -523,7 +550,7 @@ public class PatternStream<T> {
                         PatternFlatSelectFunction.class,
                         0,
                         1,
-                        new int[] {1, 0},
+                        new int[]{1, 0},
                         builder.getInputType(),
                         null,
                         false);

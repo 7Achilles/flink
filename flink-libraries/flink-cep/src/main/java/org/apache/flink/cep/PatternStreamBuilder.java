@@ -24,6 +24,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.functions.NullByteKeySelector;
+import org.apache.flink.cep.functions.DynamicPatternFunction;
 import org.apache.flink.cep.functions.PatternProcessFunction;
 import org.apache.flink.cep.functions.TimedOutPartialMatchHandler;
 import org.apache.flink.cep.nfa.compiler.NFACompiler;
@@ -63,6 +64,9 @@ final class PatternStreamBuilder<IN> {
      */
     private final TimeBehaviour timeBehaviour;
 
+    private final DynamicPatternFunction<IN> dynamicPatternFunction;
+
+
     /**
      * The time behaviour enum defines how the system determines time for time-dependent order and
      * operations that depend on time.
@@ -83,6 +87,34 @@ final class PatternStreamBuilder<IN> {
         this.timeBehaviour = checkNotNull(timeBehaviour);
         this.comparator = comparator;
         this.lateDataOutputTag = lateDataOutputTag;
+        this.dynamicPatternFunction = null;
+    }
+
+    /**
+     * @param inputStream:
+     * @param pattern:
+     * @param timeBehaviour:
+     * @param comparator:
+     * @param lateDataOutputTag:
+     * @param dynamicPatternFunction:
+     *
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:17
+     */
+    private PatternStreamBuilder(
+            final DataStream<IN> inputStream,
+            final Pattern<IN, ?> pattern,
+            final TimeBehaviour timeBehaviour,
+            @Nullable final EventComparator<IN> comparator,
+            @Nullable final OutputTag<IN> lateDataOutputTag,
+            @Nullable final DynamicPatternFunction<IN> dynamicPatternFunction) {
+        this.inputStream = checkNotNull(inputStream);
+        this.pattern = checkNotNull(pattern);
+        this.timeBehaviour = checkNotNull(timeBehaviour);
+        this.comparator = comparator;
+        this.lateDataOutputTag = lateDataOutputTag;
+        this.dynamicPatternFunction = dynamicPatternFunction;
     }
 
     TypeInformation<IN> getInputType() {
@@ -125,10 +157,11 @@ final class PatternStreamBuilder<IN> {
      *
      * @param processFunction function to be applied to matching event sequences
      * @param outTypeInfo output TypeInformation of {@link PatternProcessFunction#processMatch(Map,
-     *     PatternProcessFunction.Context, Collector)}
+     *         PatternProcessFunction.Context, Collector)}
      * @param <OUT> type of output events
+     *
      * @return Data stream containing fully matched event sequence with applied {@link
-     *     PatternProcessFunction}
+     *         PatternProcessFunction}
      */
     <OUT, K> SingleOutputStreamOperator<OUT> build(
             final TypeInformation<OUT> outTypeInfo,
@@ -142,18 +175,37 @@ final class PatternStreamBuilder<IN> {
         final boolean isProcessingTime = timeBehaviour == TimeBehaviour.ProcessingTime;
 
         final boolean timeoutHandling = processFunction instanceof TimedOutPartialMatchHandler;
-        final NFACompiler.NFAFactory<IN> nfaFactory =
-                NFACompiler.compileFactory(pattern, timeoutHandling);
 
-        final CepOperator<IN, K, OUT> operator =
-                new CepOperator<>(
-                        inputSerializer,
-                        isProcessingTime,
-                        nfaFactory,
-                        comparator,
-                        pattern.getAfterMatchSkipStrategy(),
-                        processFunction,
-                        lateDataOutputTag);
+        CepOperator<IN, K, OUT> operator;
+
+        if (dynamicPatternFunction == null) {
+
+            final NFACompiler.NFAFactory<IN> nfaFactory =
+                    NFACompiler.compileFactory(pattern, timeoutHandling);
+
+            operator =
+                    new CepOperator<>(
+                            inputSerializer,
+                            isProcessingTime,
+                            nfaFactory,
+                            comparator,
+                            pattern.getAfterMatchSkipStrategy(),
+                            processFunction,
+                            lateDataOutputTag);
+        } else {
+
+            // 动态规则逻辑
+            operator = new CepOperator<>(
+                    inputSerializer,
+                    isProcessingTime,
+                    dynamicPatternFunction,
+                    comparator,
+                    null,
+                    processFunction,
+                    lateDataOutputTag,
+                    null);
+        }
+
 
         final SingleOutputStreamOperator<OUT> patternStream;
         if (inputStream instanceof KeyedStream) {
@@ -180,5 +232,27 @@ final class PatternStreamBuilder<IN> {
             final DataStream<IN> inputStream, final Pattern<IN, ?> pattern) {
         return new PatternStreamBuilder<>(
                 inputStream, pattern, TimeBehaviour.EventTime, null, null);
+    }
+
+    /**
+     * @param inputStream:
+     * @param dynamicPatternFunction:
+     *
+     * @return PatternStreamBuilder<IN>
+     *
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:15
+     */
+    static <IN> PatternStreamBuilder<IN> forStreamAndPattern(
+            final DataStream<IN> inputStream,
+            final DynamicPatternFunction<IN> dynamicPatternFunction) {
+        return new PatternStreamBuilder<>(
+                inputStream,
+                dynamicPatternFunction.getPattern(),
+                TimeBehaviour.EventTime,
+                null,
+                null,
+                dynamicPatternFunction);
     }
 }

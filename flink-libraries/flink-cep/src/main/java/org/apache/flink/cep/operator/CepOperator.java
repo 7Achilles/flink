@@ -31,15 +31,19 @@ import org.apache.flink.api.common.typeutils.base.LongSerializer;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.cep.EventComparator;
 import org.apache.flink.cep.configuration.SharedBufferCacheConfig;
+import org.apache.flink.cep.functions.DynamicPatternFunction;
 import org.apache.flink.cep.functions.PatternProcessFunction;
 import org.apache.flink.cep.functions.TimedOutPartialMatchHandler;
+import org.apache.flink.cep.nfa.ComputationState;
 import org.apache.flink.cep.nfa.NFA;
 import org.apache.flink.cep.nfa.NFAState;
 import org.apache.flink.cep.nfa.NFAStateSerializer;
+import org.apache.flink.cep.nfa.State;
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.nfa.compiler.NFACompiler;
 import org.apache.flink.cep.nfa.sharedbuffer.SharedBuffer;
 import org.apache.flink.cep.nfa.sharedbuffer.SharedBufferAccessor;
+import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.cep.time.TimerService;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
@@ -64,9 +68,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.stream.Stream;
 
 /**
@@ -87,6 +94,9 @@ public class CepOperator<IN, KEY, OUT>
 
     private static final String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
+    private DynamicPatternFunction<IN> dynamicPatternFunction;
+
+
     private final boolean isProcessingTime;
 
     private final TypeSerializer<IN> inputSerializer;
@@ -96,7 +106,7 @@ public class CepOperator<IN, KEY, OUT>
     private static final String NFA_STATE_NAME = "nfaStateName";
     private static final String EVENT_QUEUE_STATE_NAME = "eventQueuesStateName";
 
-    private final NFACompiler.NFAFactory<IN> nfaFactory;
+    private NFACompiler.NFAFactory<IN> nfaFactory;
 
     private transient ValueState<NFAState> computationStates;
     private transient MapState<Long, List<IN>> elementQueueState;
@@ -116,7 +126,7 @@ public class CepOperator<IN, KEY, OUT>
     private final OutputTag<IN> lateDataOutputTag;
 
     /** Strategy which element to skip after a match was found. */
-    private final AfterMatchSkipStrategy afterMatchSkipStrategy;
+    private AfterMatchSkipStrategy afterMatchSkipStrategy;
 
     /** Context passed to user function. */
     private transient ContextFunctionImpl context;
@@ -153,6 +163,43 @@ public class CepOperator<IN, KEY, OUT>
         this.comparator = comparator;
         this.lateDataOutputTag = lateDataOutputTag;
 
+        if (afterMatchSkipStrategy == null) {
+            this.afterMatchSkipStrategy = AfterMatchSkipStrategy.noSkip();
+        } else {
+            this.afterMatchSkipStrategy = afterMatchSkipStrategy;
+        }
+    }
+
+    /**
+     * @param inputSerializer:
+     * @param isProcessingTime:
+     * @param dynamicPatternFunction:
+     * @param comparator:
+     * @param afterMatchSkipStrategy:
+     * @param function:
+     * @param lateDataOutputTag:
+     * @param nfaFactory:
+     *
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:26
+     */
+    public CepOperator(
+            final TypeSerializer<IN> inputSerializer,
+            final boolean isProcessingTime,
+            final DynamicPatternFunction<IN> dynamicPatternFunction,
+            @Nullable final EventComparator<IN> comparator,
+            @Nullable final AfterMatchSkipStrategy afterMatchSkipStrategy,
+            final PatternProcessFunction<IN, OUT> function,
+            @Nullable final OutputTag<IN> lateDataOutputTag,
+            @Nullable final NFACompiler.NFAFactory<IN> nfaFactory) {
+        super(function);
+        this.nfaFactory = nfaFactory;
+        this.inputSerializer = Preconditions.checkNotNull(inputSerializer);
+        this.dynamicPatternFunction = dynamicPatternFunction;
+        this.isProcessingTime = isProcessingTime;
+        this.comparator = comparator;
+        this.lateDataOutputTag = lateDataOutputTag;
         if (afterMatchSkipStrategy == null) {
             this.afterMatchSkipStrategy = AfterMatchSkipStrategy.noSkip();
         } else {
@@ -207,6 +254,15 @@ public class CepOperator<IN, KEY, OUT>
                 getInternalTimerService(
                         "watermark-callbacks", VoidNamespaceSerializer.INSTANCE, this);
 
+        // 新逻辑，获取pattern
+        if (dynamicPatternFunction != null) {
+            // 获取Pattern
+            Pattern<IN, IN> pattern = dynamicPatternFunction.getPattern();
+            afterMatchSkipStrategy = pattern.getAfterMatchSkipStrategy();
+            boolean timeoutHandling = getUserFunction() instanceof TimedOutPartialMatchHandler;
+            nfaFactory = NFACompiler.compileFactory(pattern, timeoutHandling);
+        }
+
         nfa = nfaFactory.createNFA();
         nfa.open(cepRuntimeContext, new Configuration());
 
@@ -226,6 +282,74 @@ public class CepOperator<IN, KEY, OUT>
         }
         if (partialMatches != null) {
             partialMatches.releaseCacheStatisticsTimer();
+        }
+    }
+
+    /**
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:31
+     */
+    private void cleanBeforeMatch() throws Exception {
+        NFAState nfaState = getNFAState();
+        // 拿到已经匹配的状态
+        Queue<ComputationState> partialMatches = nfaState.getPartialMatches();
+        partialMatches.clear();
+        Queue<ComputationState> startingStates = new LinkedList<>();
+        for (State<IN> state : nfa.getStates()) {
+            if (state.isStart()) {
+                startingStates.add(ComputationState.createStartState(state.getName()));
+            }
+        }
+        partialMatches.addAll(startingStates);
+    }
+
+    /**
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:29
+     */
+    private void cleanSharedBuffer() {
+        partialMatches.clean();
+    }
+
+    /**
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:29
+     */
+    private void cleanNFAStatus() throws Exception {
+        cleanSharedBuffer();
+        cleanBeforeMatch();
+    }
+
+    /**
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:21
+     */
+    private void dynamicPattern() throws Exception {
+        // 动态规则不为空 且 规则需要被替换
+        if (Optional.ofNullable(dynamicPatternFunction).isPresent()
+                && dynamicPatternFunction.isChanged()) {
+
+            //重新注入
+            Pattern<IN, IN> pattern = dynamicPatternFunction.getPattern();
+
+            afterMatchSkipStrategy = pattern.getAfterMatchSkipStrategy();
+            boolean timeoutHandling = getUserFunction() instanceof TimedOutPartialMatchHandler;
+
+            nfaFactory = NFACompiler.compileFactory(pattern, timeoutHandling);
+
+            nfa = nfaFactory.createNFA();
+            nfa.open(cepRuntimeContext, new Configuration());
+
+            // 清理过期的状态
+            cleanNFAStatus();
+
+            // 回调规则替换成功
+            dynamicPatternFunction.changed(() -> true);
+
         }
     }
 
@@ -424,14 +548,14 @@ public class CepOperator<IN, KEY, OUT>
     private void advanceTime(NFAState nfaState, long timestamp) throws Exception {
         try (SharedBufferAccessor<IN> sharedBufferAccessor = partialMatches.getAccessor()) {
             Tuple2<
-                            Collection<Map<String, List<IN>>>,
-                            Collection<Tuple2<Map<String, List<IN>>, Long>>>
+                    Collection<Map<String, List<IN>>>,
+                    Collection<Tuple2<Map<String, List<IN>>, Long>>>
                     pendingMatchesAndTimeout =
-                            nfa.advanceTime(
-                                    sharedBufferAccessor,
-                                    nfaState,
-                                    timestamp,
-                                    afterMatchSkipStrategy);
+                    nfa.advanceTime(
+                            sharedBufferAccessor,
+                            nfaState,
+                            timestamp,
+                            afterMatchSkipStrategy);
 
             Collection<Map<String, List<IN>>> pendingMatches = pendingMatchesAndTimeout.f0;
             Collection<Tuple2<Map<String, List<IN>>, Long>> timedOut = pendingMatchesAndTimeout.f1;

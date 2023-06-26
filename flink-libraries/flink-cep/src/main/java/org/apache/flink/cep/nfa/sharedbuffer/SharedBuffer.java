@@ -66,8 +66,9 @@ import java.util.TimerTask;
  * Streams".
  *
  * @param <V> Type of the values
+ *
  * @see <a href="https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf">
- *     https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf</a>
+ *         https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf</a>
  */
 public class SharedBuffer<V> {
 
@@ -290,6 +291,7 @@ public class SharedBuffer<V> {
      * Checks if there is no elements in the buffer.
      *
      * @return true if there is no elements in the buffer
+     *
      * @throws Exception Thrown if the system cannot access the state.
      */
     public boolean isEmpty() throws Exception {
@@ -347,6 +349,7 @@ public class SharedBuffer<V> {
      * It always returns node either from state or cache.
      *
      * @param nodeId id of the node
+     *
      * @return SharedBufferNode
      */
     Lockable<SharedBufferNode> getEntry(NodeId nodeId) {
@@ -370,6 +373,7 @@ public class SharedBuffer<V> {
      * It always returns event either from state or cache.
      *
      * @param eventId id of the event
+     *
      * @return event
      */
     Lockable<V> getEvent(EventId eventId) {
@@ -428,5 +432,18 @@ public class SharedBuffer<V> {
     @VisibleForTesting
     public int getSharedBufferNodeCacheSize() throws Exception {
         return (int) entryCache.size();
+    }
+
+    /**
+     * @author 7Achilles
+     * @description TODO
+     * @date 2023-06-25 17:30
+     */
+    public void clean() {
+        eventsBuffer.clear();
+        eventsBufferCache.cleanUp();
+        entryCache.cleanUp();
+        eventsCount.clear();
+        entries.clear();
     }
 }
