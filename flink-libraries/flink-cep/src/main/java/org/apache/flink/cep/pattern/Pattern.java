@@ -314,6 +314,7 @@ public class Pattern<T, F extends T> {
      * @param name Name of the new pattern
      * @return A new pattern which is appended to this one
      */
+    // 如果不想后面直接连着一个特定事件
     public Pattern<T, T> notNext(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
             throw new UnsupportedOperationException(
@@ -332,6 +333,7 @@ public class Pattern<T, F extends T> {
      * @param name Name of the new pattern
      * @return A new pattern which is appended to this one
      */
+    // 松散连续:忽略匹配的事件之间的不匹配的事件
     public Pattern<T, T> followedBy(final String name) {
         return new Pattern<>(name, this, ConsumingStrategy.SKIP_TILL_NEXT, afterMatchSkipStrategy);
     }
@@ -345,6 +347,7 @@ public class Pattern<T, F extends T> {
      * @param name Name of the new pattern
      * @return A new pattern which is appended to this one
      */
+    // 如果不想一个特定事件发生在两个事件之间的任何地方
     public Pattern<T, T> notFollowedBy(final String name) {
         if (quantifier.hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
             throw new UnsupportedOperationException(
@@ -363,6 +366,7 @@ public class Pattern<T, F extends T> {
      * @param name Name of the new pattern
      * @return A new pattern which is appended to this one
      */
+    // 不确定的松散连续: 更进一步的松散连续，允许忽略掉一些匹配事件的附加匹配
     public Pattern<T, T> followedByAny(final String name) {
         return new Pattern<>(name, this, ConsumingStrategy.SKIP_TILL_ANY, afterMatchSkipStrategy);
     }
@@ -373,6 +377,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern as optional.
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 表示当前的模式是可选的
     public Pattern<T, F> optional() {
         checkIfPreviousPatternGreedy();
         quantifier.optional();
@@ -391,6 +396,7 @@ public class Pattern<T, F extends T> {
      *     applied.
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 指定模式期望匹配到的事件至少出现一次
     public Pattern<T, F> oneOrMore() {
         return oneOrMore(null);
     }
@@ -424,6 +430,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern with {@link Quantifier#greedy} set to true.
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 指定这个模式是贪心的，也就是说，它会重复尽可能多的次数。这只对量词适用，现在还不支持模式组
     public Pattern<T, F> greedy() {
         checkIfNoNotPattern();
         checkIfNoGroupPattern();
@@ -438,6 +445,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern with number of times applied
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 指定模式期望匹配到的事件正好出现的次数。 默认（在子事件间）使用松散的内部连续性
     public Pattern<T, F> times(int times) {
         return times(times, null);
     }
@@ -502,6 +510,7 @@ public class Pattern<T, F extends T> {
      *     applied.
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 指定模式期望匹配到的事件至少出现 #times 次
     public Pattern<T, F> timesOrMore(int times) {
         return timesOrMore(times, null);
     }
@@ -539,6 +548,7 @@ public class Pattern<T, F extends T> {
      * @return The same pattern with the updated quantifier. *
      * @throws MalformedPatternException if the quantifier is not applicable to this pattern.
      */
+    // 循环模式下采用不确定松散连续
     public Pattern<T, F> allowCombinations() {
         quantifier.combinations();
         return this;
@@ -579,6 +589,7 @@ public class Pattern<T, F extends T> {
      *
      * @return pattern with continuity changed to strict
      */
+    // 循环模式下采用严格连续
     public Pattern<T, F> consecutive() {
         quantifier.consecutive();
         return this;
@@ -593,6 +604,7 @@ public class Pattern<T, F extends T> {
      *     each match.
      * @return The first pattern of a pattern sequence
      */
+    // 开启模式组（说白了就是子模式组合）
     public static <T, F extends T> GroupPattern<T, F> begin(
             final Pattern<T, F> group, final AfterMatchSkipStrategy afterMatchSkipStrategy) {
         return new GroupPattern<>(null, group, ConsumingStrategy.STRICT, afterMatchSkipStrategy);
