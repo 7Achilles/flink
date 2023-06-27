@@ -265,6 +265,8 @@ public class AkkaRpcService implements RpcService {
 
         final SupervisorActor.ActorRegistration actorRegistration =
                 registerAkkaRpcActor(rpcEndpoint);
+
+        // 创建一个actor
         final ActorRef actorRef = actorRegistration.getActorRef();
         final CompletableFuture<Void> actorTerminationFuture =
                 actorRegistration.getTerminationFuture();
@@ -324,6 +326,7 @@ public class AkkaRpcService implements RpcService {
         // code is loaded dynamically (for example from an OSGI bundle) through a custom ClassLoader
         ClassLoader classLoader = getClass().getClassLoader();
 
+        // 动态代理akkaInvocationHandler到RpcServer代理对象
         @SuppressWarnings("unchecked")
         RpcServer server =
                 (RpcServer)

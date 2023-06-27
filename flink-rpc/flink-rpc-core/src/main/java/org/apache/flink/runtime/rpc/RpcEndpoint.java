@@ -87,6 +87,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>The running state can be queried in a RPC method handler or in the main thread by calling
  * {@link #isRunning()} method.
  */
+// 提供RPC服务组件的生命周期管理（start，stop）
 public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -94,12 +95,14 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
     // ------------------------------------------------------------------------
 
     /** RPC service to be used to start the RPC server and to obtain rpc gateways. */
+    // rpc服务，用来：1)启动/停止rpc server；2）连接对方rpc server，并返回rpc gateway；3）调度
     private final RpcService rpcService;
 
     /** Unique identifier for this rpc endpoint. */
     private final String endpointId;
 
     /** Interface to access the underlying rpc server. */
+    // rpc服务器
     protected final RpcServer rpcServer;
 
     /**
@@ -138,6 +141,7 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
         this.rpcService = checkNotNull(rpcService, "rpcService");
         this.endpointId = checkNotNull(endpointId, "endpointId");
 
+        // 创建actor，开启server
         this.rpcServer = rpcService.startServer(this);
         this.resourceRegistry = new CloseableRegistry();
 

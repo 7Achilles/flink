@@ -25,6 +25,7 @@ import java.io.Serializable;
  *
  * @param <F> type of the fencing token
  */
+// 高可用
 public interface FencedRpcGateway<F extends Serializable> extends RpcGateway {
 
     /**

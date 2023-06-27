@@ -153,6 +153,7 @@ class AkkaRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
 
     @Override
     public Receive createReceive() {
+        // 注册响应消息处理器
         return ReceiveBuilder.create()
                 .match(RemoteHandshakeMessage.class, this::handleHandshakeMessage)
                 .match(ControlMessages.class, this::handleControlMessage)
@@ -165,6 +166,7 @@ class AkkaRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
             mainThreadValidator.enterMainThread();
 
             try {
+                // rpc消息处理
                 handleRpcMessage(message);
             } finally {
                 mainThreadValidator.exitMainThread();
@@ -183,6 +185,7 @@ class AkkaRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
         }
     }
 
+    // 控制消息
     private void handleControlMessage(ControlMessages controlMessage) {
         try {
             switch (controlMessage) {
@@ -236,6 +239,7 @@ class AkkaRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
         }
     }
 
+    // 握手消息
     private void handleHandshakeMessage(RemoteHandshakeMessage handshakeMessage) {
         if (!isCompatibleVersion(handshakeMessage.getVersion())) {
             sendErrorIfSender(

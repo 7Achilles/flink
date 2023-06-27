@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.rpc;
 
 /** Rpc gateway interface which has to be implemented by Rpc gateways. */
+// rpc 网关定义
 public interface RpcGateway {
 
     /**

@@ -67,6 +67,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * in an {@link RpcInvocation} message and then sends it to the {@link AkkaRpcActor} where it is
  * executed.
  */
+// 动态代理转发到AkkaInvocationHandler做处理
 class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, RpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(AkkaInvocationHandler.class);
 
@@ -120,6 +121,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
         this.captureAskCallStack = captureAskCallStack;
     }
 
+    // 最终都会转发到这个方法
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         Class<?> declaringClass = method.getDeclaringClass();
@@ -132,6 +134,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                 || declaringClass.equals(StartStoppable.class)
                 || declaringClass.equals(MainThreadExecutable.class)
                 || declaringClass.equals(RpcServer.class)) {
+            // 如果是网关定义的，在这里执行
             result = method.invoke(this, args);
         } else if (declaringClass.equals(FencedRpcGateway.class)) {
             throw new UnsupportedOperationException(
@@ -141,6 +144,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                             + "fencing token. Please use RpcService#connect(RpcService, F, Time) with F being the fencing token to "
                             + "retrieve a properly FencedRpcGateway.");
         } else {
+            // 不是网关定义的，执行这里
             result = invokeRpc(method, args);
         }
 
@@ -191,6 +195,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
 
     @Override
     public void start() {
+        //  发送一个启动事件
         rpcEndpoint.tell(ControlMessages.START, ActorRef.noSender());
     }
 
@@ -213,6 +218,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
      *     completed with a {@link RecipientUnreachableException}.
      * @throws Exception if the RPC invocation fails
      */
+    // 发送RPC请求
     private Object invokeRpc(Method method, Object[] args) throws Exception {
         String methodName = method.getName();
         Class<?>[] parameterTypes = method.getParameterTypes();
@@ -221,6 +227,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
         Duration futureTimeout =
                 RpcGatewayUtils.extractRpcTimeout(parameterAnnotations, args, timeout);
 
+        // 封装RPC消息
         final RpcInvocation rpcInvocation =
                 createRpcInvocationMessage(
                         method.getDeclaringClass().getSimpleName(),
@@ -233,7 +240,9 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
 
         final Object result;
 
+        // 返回为空
         if (Objects.equals(returnType, Void.TYPE)) {
+            // 调用tell模式
             tell(rpcInvocation);
 
             result = null;
@@ -246,6 +255,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
             final Throwable callStackCapture = captureAskCallStack ? new Throwable() : null;
 
             // execute an asynchronous call
+            // 返回不为空，则使用ask模式
             final CompletableFuture<?> resultFuture =
                     ask(rpcInvocation, futureTimeout)
                             .thenApply(
@@ -268,6 +278,7 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
                         }
                     });
 
+            // 返回类型为CompletableFuture，则直接返回
             if (Objects.equals(returnType, CompletableFuture.class)) {
                 result = completableFuture;
             } else {
@@ -304,10 +315,12 @@ class AkkaInvocationHandler implements InvocationHandler, AkkaBasedEndpoint, Rpc
             throws IOException {
         final RpcInvocation rpcInvocation;
 
+        // 本地类型
         if (isLocal && (!forceRpcInvocationSerialization || isLocalRpcInvocation)) {
             rpcInvocation =
                     new LocalRpcInvocation(declaringClassName, methodName, parameterTypes, args);
         } else {
+            // 远程类型
             rpcInvocation =
                     new RemoteRpcInvocation(declaringClassName, methodName, parameterTypes, args);
         }
