@@ -464,7 +464,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
         } else {
             LOG.info("Cannot determine the maximum number of open file descriptors");
         }
-
+        // 核心
         runTaskManagerProcessSecurely(args);
     }
 
@@ -525,6 +525,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
         try {
             SecurityUtils.install(new SecurityConfiguration(configuration));
 
+            // 核心代码
             exitCode =
                     SecurityUtils.getInstalledContext()
                             .runSecured(() -> runTaskManager(configuration, pluginManager));

@@ -34,6 +34,7 @@ public class TaskExecutorToServiceAdapter implements TaskManagerRunner.TaskExecu
 
     @Override
     public void start() {
+        // 启动任务执行器
         taskExecutor.start();
     }
 

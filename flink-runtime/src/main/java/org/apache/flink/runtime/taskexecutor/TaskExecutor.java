@@ -421,6 +421,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     @Override
     public void onStart() throws Exception {
         try {
+            // 启动task executor
             startTaskExecutorServices();
         } catch (Throwable t) {
             final TaskManagerException exception =
@@ -436,6 +437,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
     private void startTaskExecutorServices() throws Exception {
         try {
             // start by connecting to the ResourceManager
+            // 连接resource manager
             resourceManagerLeaderRetriever.start(new ResourceManagerLeaderListener());
 
             // tell the task slot table who's responsible for the task slot actions
