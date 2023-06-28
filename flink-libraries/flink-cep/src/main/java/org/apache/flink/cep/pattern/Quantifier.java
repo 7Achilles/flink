@@ -39,6 +39,7 @@ import java.util.Objects;
  * also hava an additional inner consuming strategy that is applied between accepted events in the
  * pattern.
  */
+// 描述模式的量词，有三种主要量词
 public class Quantifier {
 
     private final EnumSet<QuantifierProperty> properties;
@@ -166,11 +167,11 @@ public class Quantifier {
 
     /** Properties that a {@link Quantifier} can have. Not all combinations are valid. */
     public enum QuantifierProperty {
-        SINGLE,
-        LOOPING,
-        TIMES,
-        OPTIONAL,
-        GREEDY
+        SINGLE,// 单一
+        LOOPING,// 循环
+        TIMES,// 次数
+        OPTIONAL,// 自选
+        GREEDY// 贪婪
     }
 
     /**
@@ -178,12 +179,12 @@ public class Quantifier {
      * info.
      */
     public enum ConsumingStrategy {
-        STRICT,
-        SKIP_TILL_NEXT,
-        SKIP_TILL_ANY,
+        STRICT, // 严格连续。 所有匹配的事件中间没有任何不匹配的事件。
+        SKIP_TILL_NEXT, // 松散连续。允许匹配的事件之间出现不匹配的事件，不匹配的事件会被忽略。
+        SKIP_TILL_ANY, // 不确定松散连续。更进一步的松散连续，允许忽略掉一些匹配事件的附加匹配。
 
-        NOT_FOLLOW,
-        NOT_NEXT
+        NOT_FOLLOW, // 某指定事件后续不出现
+        NOT_NEXT // 紧接着的后续事件不能是某指定事件。
     }
 
     /** Describe the times this {@link Pattern} can occur. */

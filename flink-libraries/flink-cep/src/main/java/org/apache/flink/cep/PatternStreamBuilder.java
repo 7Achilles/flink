@@ -136,6 +136,7 @@ final class PatternStreamBuilder<IN> {
      * @return Data stream containing fully matched event sequence with applied {@link
      *     PatternProcessFunction}
      */
+    // 还是回到PatternStreamBuilder了，还是用PatternStream的构造者来构造PatternStream对象
     <OUT, K> SingleOutputStreamOperator<OUT> build(
             final TypeInformation<OUT> outTypeInfo,
             final PatternProcessFunction<IN, OUT> processFunction) {
@@ -146,11 +147,14 @@ final class PatternStreamBuilder<IN> {
         // 拿到序列化器
         final TypeSerializer<IN> inputSerializer =
                 inputStream.getType().createSerializer(inputStream.getExecutionConfig());
+
+        // 判断下时间行为是不是处理时间
         final boolean isProcessingTime = timeBehaviour == TimeBehaviour.ProcessingTime;
 
+        // 判断下处理函数是不是超时处理函数
         final boolean timeoutHandling = processFunction instanceof TimedOutPartialMatchHandler;
 
-        // 构造nfa的工厂
+        // 通过NFA编译器构造nfa工厂
         final NFACompiler.NFAFactory<IN> nfaFactory =
                 NFACompiler.compileFactory(pattern, timeoutHandling);
 

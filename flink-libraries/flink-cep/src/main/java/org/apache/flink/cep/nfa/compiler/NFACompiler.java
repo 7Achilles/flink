@@ -68,12 +68,14 @@ public class NFACompiler {
      * @param <T> Type of the input events
      * @return Factory for NFAs corresponding to the given pattern
      */
+    // 构造NFA的工厂
     @SuppressWarnings("unchecked")
     public static <T> NFAFactory<T> compileFactory(
             final Pattern<T, ?> pattern, boolean timeoutHandling) {
+
         if (pattern == null) {
             // return a factory for empty NFAs
-            // pattern为空则返回一个空的nfa
+            // pattern为空则返回一个空的nfa工厂
             return new NFAFactoryImpl<>(
                     0,
                     Collections.<String, Long>emptyMap(),
@@ -147,7 +149,9 @@ public class NFACompiler {
 
         private final NFAStateNameHandler stateNameHandler = new NFAStateNameHandler();
         private final Map<String, State<T>> stopStates = new HashMap<>();
+        // 状态列表
         private final List<State<T>> states = new ArrayList<>();
+        // 存状态名字和窗口大小
         private final Map<String, Long> windowTimes = new HashMap<>();
 
         private Optional<Long> windowTime;
@@ -161,6 +165,7 @@ public class NFACompiler {
         NFAFactoryCompiler(final Pattern<T, ?> pattern) {
             // 把pattern设置进来
             this.currentPattern = pattern;
+            // 设置匹配后的跳过策略
             afterMatchSkipStrategy = pattern.getAfterMatchSkipStrategy();
             windowTime = Optional.empty();
         }
@@ -169,8 +174,11 @@ public class NFACompiler {
          * Compiles the given pattern into a {@link NFAFactory}. The NFA factory can be used to
          * create multiple NFAs.
          */
+        // 将给定的模式编译到NFA工厂中
+        // 这里会把pattern转为一个个状态
         void compileFactory() {
 
+            // 拿到当前的Pattern
             Pattern<T, ?> lastPattern = currentPattern;
 
             checkPatternNameUniqueness();
@@ -179,9 +187,10 @@ public class NFACompiler {
 
             // we're traversing the pattern from the end to the beginning --> the first state is the
             // final state
-            // 设置状态
+            // 创建最终状态
             State<T> sinkState = createEndingState();
             // add all the normal states
+            // 创建中间状态
             sinkState = createMiddleStates(sinkState);
             // add the beginning state
             createStartState(sinkState);
@@ -322,8 +331,11 @@ public class NFACompiler {
          *
          * @return dummy Final state
          */
+        // 创造NFA图的虚拟最终状态
         private State<T> createEndingState() {
+            // 创造状态
             State<T> endState = createState(ENDING_STATE_NAME, State.StateType.Final);
+            // 窗口时间转为毫秒
             windowTime =
                     Optional.ofNullable(currentPattern.getWindowTime()).map(Time::toMilliseconds);
             return endState;
@@ -336,25 +348,39 @@ public class NFACompiler {
          * @return the next state after Start in the resulting graph
          */
         private State<T> createMiddleStates(final State<T> sinkState) {
+            // 最终状态赋值
             State<T> lastSink = sinkState;
+
+            // 遍历，直到当前的pattern的前驱pattern为空
             while (currentPattern.getPrevious() != null) {
 
+                // 看看当前的pattern的跳过策略，按跳过策略干活
                 if (currentPattern.getQuantifier().getConsumingStrategy()
                         == Quantifier.ConsumingStrategy.NOT_FOLLOW) {
                     // skip notFollow patterns, they are converted into edge conditions
+                    // 看下当前的pattern是不是规定的后续某事件不出现的策略
                     if ((currentPattern.getWindowTime(WithinType.PREVIOUS_AND_CURRENT) != null
                                     || getWindowTime() > 0)
                             && lastSink.isFinal()) {
+                        // 看下当前模式的窗口类型是不是前后那种类型
+
+                        // 创建一个挂起的状态
                         final State<T> notFollow = createState(State.StateType.Pending, true);
+                        // 拿到当前pattern的condition方法
                         final IterativeCondition<T> notCondition = getTakeCondition(currentPattern);
+                        // 创建一个停止的状态
                         final State<T> stopState =
                                 createStopState(notCondition, currentPattern.getName());
+                        // 把停止状态和condition方法添加到挂起状态
                         notFollow.addProceed(stopState, notCondition);
+                        // 添加忽略
                         notFollow.addIgnore(new RichNotCondition<>(notCondition));
+                        // lastSink重置为挂起节点
                         lastSink = notFollow;
                     }
                 } else if (currentPattern.getQuantifier().getConsumingStrategy()
                         == Quantifier.ConsumingStrategy.NOT_NEXT) {
+                    // 当前的策略为next不为某事件
                     final State<T> notNext = createState(State.StateType.Normal, true);
                     final IterativeCondition<T> notCondition = getTakeCondition(currentPattern);
                     final State<T> stopState =
@@ -369,6 +395,7 @@ public class NFACompiler {
                     notNext.addProceed(stopState, notCondition);
                     lastSink = notNext;
                 } else {
+                    // 其他状态的流程
                     lastSink = convertPattern(lastSink);
                 }
 
@@ -402,8 +429,9 @@ public class NFACompiler {
 
         private State<T> convertPattern(final State<T> sinkState) {
             final State<T> lastSink;
-
+            // 拿到当前模式的量词
             final Quantifier quantifier = currentPattern.getQuantifier();
+            // 当前的量词是不是归属于循环
             if (quantifier.hasProperty(Quantifier.QuantifierProperty.LOOPING)) {
 
                 // if loop has started then all notPatterns previous to the optional states are no
@@ -415,6 +443,7 @@ public class NFACompiler {
                 setCurrentGroupPatternFirstOfLoop(true);
                 lastSink = createTimesState(looping, sinkState, currentPattern.getTimes());
             } else if (quantifier.hasProperty(Quantifier.QuantifierProperty.TIMES)) {
+                // 当前的量词是不是归属于次数
                 lastSink = createTimesState(sinkState, sinkState, currentPattern.getTimes());
             } else {
                 lastSink = createSingletonState(sinkState);
@@ -425,15 +454,22 @@ public class NFACompiler {
         }
 
         private State<T> createState(State.StateType stateType, boolean isTake) {
+            // 创建状态
             State<T> state = createState(currentPattern.getName(), stateType);
+
             if (isTake) {
+                // 拿到当前的模式的次数
                 Times times = currentPattern.getTimes();
+                // 拿到当前模式的窗口信息
                 Time windowTime = currentPattern.getWindowTime(WithinType.PREVIOUS_AND_CURRENT);
                 if (times == null && windowTime != null) {
+                    // 此时为空且窗口不为空时，把状态名和窗口的大小存起来
                     windowTimes.put(state.getName(), windowTime.toMilliseconds());
                 } else if (times != null
                         && times.getWindowTime() != null
                         && state.getName().contains(STATE_NAME_DELIM)) {
+                    // 如果次数不为空 并且 窗口不为空 并且 状态名包含:
+                    // 存起来
                     windowTimes.put(state.getName(), times.getWindowTime().toMilliseconds());
                 }
             }
@@ -449,8 +485,11 @@ public class NFACompiler {
          * @return the created state
          */
         private State<T> createState(String name, State.StateType stateType) {
+            // 这里会生成内部的唯一状态名
             String stateName = stateNameHandler.getUniqueInternalName(name);
+            // 新建一个state
             State<T> state = new State<>(stateName, stateType);
+            // 把创建的状态添加到状态列表中
             states.add(state);
             return state;
         }
@@ -1005,7 +1044,9 @@ public class NFACompiler {
          */
         @SuppressWarnings("unchecked")
         private IterativeCondition<T> getTakeCondition(Pattern<T, ?> pattern) {
+            // 拿condition
             IterativeCondition<T> takeCondition = (IterativeCondition<T>) pattern.getCondition();
+
             if (currentGroupPattern != null && currentGroupPattern.getUntilCondition() != null) {
                 takeCondition =
                         extendWithUntilCondition(

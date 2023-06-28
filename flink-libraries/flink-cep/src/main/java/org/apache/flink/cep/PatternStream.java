@@ -116,7 +116,7 @@ public class PatternStream<T> {
                         null,
                         false);
 
-        // 干活的地方
+        // 干活的地方，patternProcessFunction就是用户自己定义的处理函数
         return process(patternProcessFunction, returnType);
     }
 
@@ -136,6 +136,7 @@ public class PatternStream<T> {
             final PatternProcessFunction<T, R> patternProcessFunction,
             final TypeInformation<R> outTypeInfo) {
         // 构造nfa工厂和cep算子
+        // 构造者模式
         return builder.build(outTypeInfo, builder.clean(patternProcessFunction));
     }
 
