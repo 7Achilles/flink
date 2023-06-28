@@ -84,7 +84,7 @@ public class NFACompiler {
         } else {
             // new一个NFAFactory编译器
             final NFAFactoryCompiler<T> nfaFactoryCompiler = new NFAFactoryCompiler<>(pattern);
-            // 做一些NFAFactory编译器的初始化操作
+            // 这里面主要是构造states
             nfaFactoryCompiler.compileFactory();
             // new一个NFAFactory
             return new NFAFactoryImpl<>(
@@ -193,11 +193,14 @@ public class NFACompiler {
             // 创建中间状态
             sinkState = createMiddleStates(sinkState);
             // add the beginning state
+            // 创建起始状态
             createStartState(sinkState);
 
             // check the window times between events for pattern
+            // 检测窗口的长度是否合规
             checkPatternWindowTimes();
 
+            // 不支持一个模式最后以NotFollowedBy结束但是NotFollowedBy不带windowTime
             if (lastPattern.getQuantifier().getConsumingStrategy()
                             == Quantifier.ConsumingStrategy.NOT_FOLLOW
                     && (!windowTimes.containsKey(lastPattern.getName())
@@ -229,6 +232,7 @@ public class NFACompiler {
             windowTime.ifPresent(
                     windowTime -> {
                         if (windowTimes.values().stream().anyMatch(time -> time > windowTime)) {
+                            // 上一个事件和当前事件之间的窗口长度不能大于模式的第一个事件和最后一个事件之间的窗口长度
                             throw new MalformedPatternException(
                                     "The window length between the previous and current event cannot be larger than the window length between the first and last event for a Pattern.");
                         }
@@ -401,9 +405,11 @@ public class NFACompiler {
 
                 // we traverse the pattern graph backwards
                 followingPattern = currentPattern;
+                // 重置为上一个状态
                 currentPattern = currentPattern.getPrevious();
 
                 final Time currentWindowTime = currentPattern.getWindowTime();
+                // 重置windowTime
                 if (currentWindowTime != null
                         && currentWindowTime.toMilliseconds() < windowTime.orElse(Long.MAX_VALUE)) {
                     // the window time is the global minimum of all window times of each state
@@ -423,6 +429,7 @@ public class NFACompiler {
         @SuppressWarnings("unchecked")
         private State<T> createStartState(State<T> sinkState) {
             final State<T> beginningState = convertPattern(sinkState);
+            // 设置为起始状态
             beginningState.makeStart();
             return beginningState;
         }
@@ -617,19 +624,26 @@ public class NFACompiler {
          * @return the first state of the "complex" state, next state should point to it
          */
         @SuppressWarnings("unchecked")
+        // 创造次数状态
         private State<T> createTimesState(
                 final State<T> sinkState, final State<T> proceedState, Times times) {
+
             State<T> lastSink = sinkState;
+            // 将模式组的循环标签置为false
             setCurrentGroupPatternFirstOfLoop(false);
+
+            // 拿到停止循环的条件函数
             final IterativeCondition<T> untilCondition =
                     (IterativeCondition<T>) currentPattern.getUntilCondition();
+            // 把跳过策略和停止循环的条件函数封装到一起
             final IterativeCondition<T> innerIgnoreCondition =
                     extendWithUntilCondition(
                             getInnerIgnoreCondition(currentPattern), untilCondition, false);
+            // 把take condition 和 停止循环的条件函数封装在一起
             final IterativeCondition<T> takeCondition =
                     extendWithUntilCondition(
                             getTakeCondition(currentPattern), untilCondition, true);
-
+            // 贪心模式
             if (currentPattern.getQuantifier().hasProperty(Quantifier.QuantifierProperty.GREEDY)
                     && times.getFrom() != times.getTo()) {
                 if (untilCondition != null) {
@@ -639,12 +653,14 @@ public class NFACompiler {
                 updateWithGreedyCondition(sinkState, takeCondition);
             }
 
+            // 有多少次，就构建多少次单一状态
             for (int i = times.getFrom(); i < times.getTo(); i++) {
                 lastSink =
                         createSingletonState(
                                 lastSink, proceedState, takeCondition, innerIgnoreCondition, true);
                 addStopStateToLooping(lastSink);
             }
+
             for (int i = 0; i < times.getFrom() - 1; i++) {
                 lastSink =
                         createSingletonState(
@@ -652,7 +668,10 @@ public class NFACompiler {
                 addStopStateToLooping(lastSink);
             }
             // we created the intermediate states in the loop, now we create the start of the loop.
+            // 此时状态为true
             setCurrentGroupPatternFirstOfLoop(true);
+
+            // 创建一个单一状态并返回
             return createSingletonState(
                     lastSink,
                     proceedState,
