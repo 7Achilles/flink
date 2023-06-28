@@ -149,6 +149,7 @@ public class StreamGraphGenerator {
 
     public static final String DEFAULT_SLOT_SHARING_GROUP = "default";
 
+    // 算子列表
     private final List<Transformation<?>> transformations;
 
     private final ExecutionConfig executionConfig;
@@ -308,6 +309,7 @@ public class StreamGraphGenerator {
         this.savepointRestoreSettings = savepointRestoreSettings;
     }
 
+    // 生成流图
     public StreamGraph generate() {
         streamGraph = new StreamGraph(executionConfig, checkpointConfig, savepointRestoreSettings);
         shouldExecuteInBatchMode = shouldExecuteInBatchMode();
@@ -315,6 +317,7 @@ public class StreamGraphGenerator {
 
         alreadyTransformed = new IdentityHashMap<>();
 
+        // 遍历算子列表
         for (Transformation<?> transformation : transformations) {
             transform(transformation);
         }

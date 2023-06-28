@@ -1021,6 +1021,7 @@ public class StreamGraph implements Pipeline {
 
     /** Gets the assembled {@link JobGraph} with a specified {@link JobID}. */
     public JobGraph getJobGraph(ClassLoader userClassLoader, @Nullable JobID jobID) {
+        // 生成作业图
         return StreamingJobGraphGenerator.createJobGraph(userClassLoader, this, jobID);
     }
 
