@@ -136,7 +136,8 @@ final class PatternStreamBuilder<IN> {
      * @return Data stream containing fully matched event sequence with applied {@link
      *     PatternProcessFunction}
      */
-    // 还是回到PatternStreamBuilder了，还是用PatternStream的构造者来构造PatternStream对象
+    // 还是回到PatternStreamBuilder了，还是用PatternStream的构造者来构造PatternStream对象、
+    // 最后还是返回的cep的算子
     <OUT, K> SingleOutputStreamOperator<OUT> build(
             final TypeInformation<OUT> outTypeInfo,
             final PatternProcessFunction<IN, OUT> processFunction) {

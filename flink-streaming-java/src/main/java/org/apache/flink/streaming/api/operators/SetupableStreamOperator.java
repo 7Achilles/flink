@@ -35,7 +35,7 @@ import org.apache.flink.streaming.runtime.tasks.StreamTask;
 public interface SetupableStreamOperator<OUT> {
 
     /** Initializes the operator. Sets access to the context and the output. */
-    // 初始化算子
+    // 初始化算子，设置对上下文和输出的访问
     void setup(
             StreamTask<?, ?> containingTask, StreamConfig config, Output<StreamRecord<OUT>> output);
 

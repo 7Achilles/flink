@@ -213,6 +213,7 @@ public class NFA<T> {
 
     /** Tear-down method for the NFA. */
     public void close() throws Exception {
+        // 清理状态
         for (State<T> state : getStates()) {
             for (StateTransition<T> transition : state.getStateTransitions()) {
                 IterativeCondition condition = transition.getCondition();

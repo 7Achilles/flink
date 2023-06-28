@@ -180,7 +180,9 @@ public class CepOperator<IN, KEY, OUT>
             StreamConfig config,
             Output<StreamRecord<OUT>> output) {
         super.setup(containingTask, config, output);
+        // 初始化cep算子的运行上下文
         this.cepRuntimeContext = new CepRuntimeContext(getRuntimeContext());
+        // 把用户的方法设置到上下文
         FunctionUtils.setFunctionRuntimeContext(getUserFunction(), this.cepRuntimeContext);
     }
 
@@ -190,18 +192,19 @@ public class CepOperator<IN, KEY, OUT>
         super.initializeState(context);
 
         // initializeState through the provided context
+        // 初始化计算状态
         computationStates =
                 context.getKeyedStateStore()
                         .getState(
                                 new ValueStateDescriptor<>(
                                         NFA_STATE_NAME, new NFAStateSerializer()));
-
+        // 初始化共享缓冲区
         partialMatches =
                 new SharedBuffer<>(
                         context.getKeyedStateStore(),
                         inputSerializer,
                         SharedBufferCacheConfig.of(getOperatorConfig().getConfiguration()));
-
+        // 初始化事件队列状态
         elementQueueState =
                 context.getKeyedStateStore()
                         .getMapState(
@@ -209,8 +212,9 @@ public class CepOperator<IN, KEY, OUT>
                                         EVENT_QUEUE_STATE_NAME,
                                         LongSerializer.INSTANCE,
                                         new ListSerializer<>(inputSerializer)));
-
+        // 开了检查点的话
         if (context.isRestored()) {
+            // 共享缓冲区恢复至老状态
             partialMatches.migrateOldState(getKeyedStateBackend(), computationStates);
         }
     }
@@ -223,18 +227,21 @@ public class CepOperator<IN, KEY, OUT>
         timerService =
                 getInternalTimerService(
                         "watermark-callbacks", VoidNamespaceSerializer.INSTANCE, this);
-        // 创建nfa
+        // 创建nfa，没啥逻辑，就是把state那些参数传进来
         nfa = nfaFactory.createNFA();
 
         // 初始化nfa的状态
         nfa.open(cepRuntimeContext, new Configuration());
 
-        // 初始化
+        // 初始化函数上下文
         context = new ContextFunctionImpl();
+        // 初始化输出的收集器
         collector = new TimestampedCollector<>(output);
+
+        // 初始化cep的时间服务
         cepTimerService = new TimerServiceImpl();
 
-        // metrics
+        // metrics 指标相关的
         this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
     }
 
@@ -246,6 +253,7 @@ public class CepOperator<IN, KEY, OUT>
             nfa.close();
         }
         if (partialMatches != null) {
+            // 清理缓冲区的统计服务
             partialMatches.releaseCacheStatisticsTimer();
         }
     }
