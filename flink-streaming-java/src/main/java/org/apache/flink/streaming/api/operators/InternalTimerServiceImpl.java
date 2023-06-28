@@ -230,6 +230,7 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 
     @Override
     public void registerEventTimeTimer(N namespace, long time) {
+        // 添加一个定时器
         eventTimeTimersQueue.add(
                 new TimerHeapInternalTimer<>(time, (K) keyContext.getCurrentKey(), namespace));
     }

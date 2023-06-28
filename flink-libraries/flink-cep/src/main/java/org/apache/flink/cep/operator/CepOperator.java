@@ -285,7 +285,11 @@ public class CepOperator<IN, KEY, OUT>
 
         } else {
             // 事件时间流程
+
+            // 取出当前事件的事件事件戳
             long timestamp = element.getTimestamp();
+
+            // 取出事件
             IN value = element.getValue();
 
             // In event-time processing we assume correctness of the watermark.
@@ -294,15 +298,19 @@ public class CepOperator<IN, KEY, OUT>
             // Late events are put in a dedicated side output, if the user has specified one.
 
             if (timestamp > timerService.currentWatermark()) {
+                // 如果事件时间 > 定时器内的水位线时间
 
                 // we have an event with a valid timestamp, so
                 // we buffer it until we receive the proper watermark.
 
+                // 将这个事件缓存起来，直到达到适当的水位线
                 bufferEvent(value, timestamp);
 
             } else if (lateDataOutputTag != null) {
+                // 收集到侧输出流中
                 output.collect(lateDataOutputTag, element);
             } else {
+                // 统计下迟到的数据
                 numLateRecordsDropped.inc();
             }
         }
@@ -310,23 +318,33 @@ public class CepOperator<IN, KEY, OUT>
 
     private void registerTimer(long timestamp) {
         if (isProcessingTime) {
+            // 注册处理时间的定时器
             timerService.registerProcessingTimeTimer(VoidNamespace.INSTANCE, timestamp + 1);
         } else {
+            // 注册事件时间的定时器
             timerService.registerEventTimeTimer(VoidNamespace.INSTANCE, timestamp);
         }
     }
 
+    // 缓存事件
     private void bufferEvent(IN event, long currentTime) throws Exception {
+
+        // 拿到当前时间戳对应的事件列表
         List<IN> elementsForTimestamp = elementQueueState.get(currentTime);
         if (elementsForTimestamp == null) {
             elementsForTimestamp = new ArrayList<>();
+            // 注册一个定时器
             registerTimer(currentTime);
         }
 
+        // 把事件加入到事件列表中
         elementsForTimestamp.add(event);
+
+        // 把事件列表加回去
         elementQueueState.put(currentTime, elementsForTimestamp);
     }
 
+    // 事件时间流程，定时器到了执行的逻辑
     @Override
     public void onEventTime(InternalTimer<KEY, VoidNamespace> timer) throws Exception {
 

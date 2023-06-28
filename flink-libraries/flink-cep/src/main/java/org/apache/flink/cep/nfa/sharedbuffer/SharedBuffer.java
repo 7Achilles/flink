@@ -69,7 +69,7 @@ import java.util.TimerTask;
  * @see <a href="https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf">
  *     https://people.cs.umass.edu/~yanlei/publications/sase-sigmod08.pdf</a>
  */
-// 共享缓冲区
+// 共享缓冲区 多版本值
 public class SharedBuffer<V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedBuffer.class);
